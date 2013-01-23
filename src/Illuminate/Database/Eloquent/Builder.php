@@ -431,6 +431,125 @@ class Builder {
 		$this->query->from($model->getTable());
 	}
 
+	
+	public function whereRelated($relName, $keyCol, $comparator, $relValues)
+	{
+	    $relValues = is_array($relValues) ? $relValues : array($relValues);
+
+	    if (method_exists($this->model, $relName)) {
+
+	        $pivot_obj = $this->model->$relName();
+
+	        if ($pivot_obj instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
+	        	$joinTable = $pivot_obj->getRelated()->getTable();
+
+	        	$otherKey = $pivot_obj->getRelated()->getKeyName();
+
+	        	$localTable = $this->model->getTable();
+
+	        	$foreignKey = $pivot_obj->getForeignKey();
+	        	
+	        	$pkName = $this->model->getKeyName();
+
+	        	$self = $this;
+	        	foreach ($relValues as $relValue) {
+
+	        	    $this->whereExists(function($query) use ($self, $joinTable, $foreignKey, $localTable, $otherKey, $relValue, $comparator, $keyCol) {
+	        	        $query->select('id');
+	        	        $query->from($joinTable);
+	        	        
+	        	        $query->where("id` = `$localTable.$foreignKey` and `$keyCol", $comparator, $relValue);
+
+	        	    });
+	        	}
+
+
+	        } else {
+	       		$joiningTable = $pivot_obj->getTable();
+	   	    	$otherKey = $pivot_obj->getOtherKey();
+
+	   	    	$localTable = $this->model->getTable();
+
+	   	    	$foreignKey = $pivot_obj->getForeignKey();
+	   	    	
+	   	    	$pkName = $this->model->getKeyName();
+
+	   	    	$self = $this;
+
+	   	    	foreach ($relValues as $relValue) {
+	   	    	    
+	   	    	    $this->whereExists(function($query) use ($self, $joiningTable, $foreignKey, $localTable, $otherKey, $relValue, $pkName, $comparator, $keyCol) {
+	   	    	        $query->select('id');
+	   	    	        $query->from($joiningTable);
+
+	   	    	        // $query->where("$foreignKey` = `$localTable.id` and `$keyCol", $comparator, $relValue);
+	   	    	        $query->where("$foreignKey` = `$localTable.id` and `$otherKey", $comparator, $relValue);
+
+	   	    	    });
+	   	    	}
+
+	        }
+
+
+	    } else {
+	    	throw new \InvalidArgumentException("Relationship '$relName' does not exist");
+	    }
+	    
+	    return $this;
+	}
+
+	public function whereHasRelated($relName)
+	{
+		return $this->whereRelated($relName, '>', 0);
+	}
+
+	public function orderRandom($limit = 10)
+	{
+		$limit = is_null($limit) ? 10 : (int) $limit;
+
+		// $builder = $this->getQuery()->newQuery();
+		$builder = clone $this;
+		$modelClone = clone $this->getModel();
+		$queryClone = clone $this->getQuery();
+		$builder->setModel($modelClone);
+		// $builder->setQuery($queryClone);
+
+		// $builder->wheres = $this->getQuery()->wheres;
+		// $builder->setBindings($this->getQuery()->getBindings());
+		
+		// var_dump(__FILE__.':'.__LINE__); var_dump($this);
+		// var_dump(__FILE__.':'.__LINE__); var_dump($builder); exit;
+
+		$model = $this->getModel();
+		$pKey = $this->getModel()->getKeyName();
+
+		// $query = $this->getModel()->newQuery();
+
+		$records = $builder->select($pKey)->get();
+
+		$allKeys = array_keys($records->all());
+
+		shuffle($allKeys);
+
+		$limitedSet = array_slice($allKeys, 0, $limit);
+
+		$ids = array();
+		foreach ($limitedSet as $recordKey) {
+			$ids[] = $records[$recordKey]->$pKey;
+		}
+
+		if (empty($ids)) {
+			return $this;
+		}
+
+		$this->query = $queryClone;
+
+		// return $this;
+
+		return $this->whereIn($pKey, $ids);
+	}
+
+
 	/**
 	 * Dynamically handle calls into the query instance.
 	 *
