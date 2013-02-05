@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\FatalErrorException;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -130,7 +131,7 @@ class Application extends Container implements HttpKernelInterface {
 
 		if ($this->runningInConsole())
 		{
-			return $this->detectConsoleEnvironment($arguments);
+			return $this->detectConsoleEnvironment($base, $environments, $arguments);
 		}
 
 		return $this->detectWebEnvironment($base, $environments);
@@ -173,10 +174,12 @@ class Application extends Container implements HttpKernelInterface {
 	/**
 	 * Set the application environment from command-line arguments.
 	 *
+	 * @param  string  $base
+	 * @param  mixed   $environments
 	 * @param  array   $arguments
 	 * @return string
 	 */
-	protected function detectConsoleEnvironment(array $arguments)
+	protected function detectConsoleEnvironment($base, $environments, array $arguments)
 	{
 		foreach ($arguments as $key => $value)
 		{
@@ -187,11 +190,11 @@ class Application extends Container implements HttpKernelInterface {
 			{
 				$segments = array_slice(explode('=', $value), 1);
 
-				return $this['env'] = $segments[0];
+				return $this['env'] = head($segments);
 			}
 		}
 
-		return $this['env'] = 'production';
+		return $this->detectWebEnvironment($base, $environments);
 	}
 
 	/**
@@ -379,6 +382,8 @@ class Application extends Container implements HttpKernelInterface {
 	 */
 	public function handle(SymfonyRequest $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
 	{
+		$this['request'] = $request;
+
 		return $this->dispatch($request);
 	}
 
@@ -387,7 +392,7 @@ class Application extends Container implements HttpKernelInterface {
 	 *
 	 * @return void
 	 */
-	protected function boot()
+	public function boot()
 	{
 		foreach ($this->serviceProviders as $provider)
 		{
@@ -478,7 +483,14 @@ class Application extends Container implements HttpKernelInterface {
 	 */
 	public function abort($code, $message = '', array $headers = array())
 	{
-		throw new HttpException($code, $message, null, $headers);
+		if ($code == 404)
+		{
+			throw new NotFoundHttpException($message);
+		}
+		else
+		{
+			throw new HttpException($code, $message, null, $headers);
+		}
 	}
 
 	/**
@@ -490,6 +502,20 @@ class Application extends Container implements HttpKernelInterface {
 	public function error(Closure $callback)
 	{
 		$this['exception']->error($callback);
+	}
+
+	/**
+	 * Register an error handler for fatal errors.
+	 *
+	 * @param  Closure  $callback
+	 * @return void
+	 */
+	public function fatal(Closure $callback)
+	{
+		$this->error(function(FatalErrorException $e) use ($callback)
+		{
+			return call_user_func($callback, $e);
+		});
 	}
 
 	/**
