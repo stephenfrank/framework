@@ -2,6 +2,7 @@
 
 use Closure;
 use DateTime;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -129,6 +130,13 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	protected static $resolver;
 
 	/**
+	 * The event dispatcher instance.
+	 *
+	 * @var Illuminate\Events\Dispacher
+	 */
+	protected static $dispatcher;
+
+	/**
 	 * Create a new Eloquent model instance.
 	 *
 	 * @param  array  $attributes
@@ -154,7 +162,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 			// assignment to the model, and all others will just be ignored.
 			if ($this->isFillable($key))
 			{
-				$this->$key = $value;
+				$this->setAttribute($key, $value);
 			}
 		}
 
@@ -460,19 +468,56 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	}
 
 	/**
+	 * Register an updating model event with the dispatcher.
+	 *
+	 * @param  Closure  $callback
+	 * @return void
+	 */
+	public static function updating(Closure $callback)
+	{
+		static::registerModelEvent('updating', $callback);
+	}
+
+	/**
+	 * Register a creating model event with the dispatcher.
+	 *
+	 * @param  Closure  $callback
+	 * @return void
+	 */
+	public static function creating(Closure $callback)
+	{
+		static::registerModelEvent('creating', $callback);
+	}
+
+	/**
+	 * Register a model event with the dispatcher.
+	 *
+	 * @param  string   $event
+	 * @param  Closure  $callback
+	 * @return void
+	 */
+	protected static function registerModelEvent($event, Closure $callback)
+	{
+		if (isset(static::$dispatcher))
+		{
+			$name = get_called_class();
+
+			static::$dispatcher->listen("eloquent.{$event}: {$name}", $callback);
+		}	
+	}
+
+	/**
 	 * Save the model to the database.
 	 *
 	 * @return bool
 	 */
 	public function save()
 	{
-		$keyName = $this->getKeyName();
+		$query = $this->newQuery();
 
 		// First we need to create a fresh query instance and touch the creation and
 		// update timestamp on the model which are maintained by us for developer
 		// convenience. Then we will just continue saving the model instances.
-		$query = $this->newQuery();
-
 		if ($this->timestamps)
 		{
 			$this->updateTimestamps();
@@ -483,9 +528,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 		// clause to only update this model. Otherwise, we'll just insert them.
 		if ($this->exists)
 		{
-			$this->setKeysForSaveQuery($query);
-
-			$query->update($this->attributes);
+			$saved = $this->performUpdate($query);
 		}
 
 		// If the model is brand new, we'll insert it into our database and set the
@@ -493,17 +536,77 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 		// which is typically an auto-increment value managed by the database.
 		else
 		{
-			if ($this->incrementing)
-			{
-				$this->$keyName = $query->insertGetId($this->attributes, $keyName);
-			}
-			else
-			{
-				$query->insert($this->attributes);
-			}
+			$saved = $this->performInsert($query);
+
+			$this->exists = $saved;
 		}
 
-		return $this->exists = true;
+		return $saved;
+	}
+
+	/**
+	 * Perform a model update operation.
+	 *
+	 * @param  Illuminate\Database\Eloquent\Builder
+	 * @return bool
+	 */
+	protected function performUpdate($query)
+	{
+		// If the updating event returns false, we will cancel the update operation so
+		// developers can hook Validation systems into their models and cancel this
+		// operation if the model does not pass validation. Otherwise, we update.
+		if ($this->fireModelEvent('updating') === false) return false;
+
+		$this->setKeysForSaveQuery($query)->update($this->attributes);
+
+		return true;
+	}
+
+	/**
+	 * Perform a model insert operation.
+	 *
+	 * @param  Illuminate\Database\Eloquent\Builder
+	 * @return bool
+	 */
+	protected function performInsert($query)
+	{
+		if ($this->fireModelEvent('creating') === false) return false;
+
+		// If the model has an incrementing key, we can use the "insertGetId" method on
+		// the query builder, which will give us back the final inserted ID for this
+		// table from the database. Not all tables have to be incrementing though.
+		$attributes = $this->attributes;
+
+		if ($this->incrementing)
+		{
+			$keyName = $this->getKeyName();
+
+			$this->setAttribute($keyName, $query->insertGetId($attributes, $keyName));
+		}
+
+		// If the table is not incrementing we'll simply insert this attirbutes as they
+		// are, as this attributes arrays must contain an "id" column already placed
+		// there by the developer as the manually determined key for these models.
+		else
+		{
+			$query->insert($attributes);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Fire the given event for the model.
+	 *
+	 * @return mixed
+	 */
+	protected function fireModelEvent($event)
+	{
+		if ( ! isset(static::$dispatcher)) return true;
+
+		$name = get_class($this);
+
+		return static::$dispatcher->until("eloquent.{$event}: {$name}", $this);
 	}
 
 	/**
@@ -515,6 +618,8 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	protected function setKeysForSaveQuery($query)
 	{
 		$query->where($this->getKeyName(), '=', $this->getKey());
+
+		return $query;
 	}
 
 	/**
@@ -836,22 +941,24 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function getAttribute($key)
 	{
-		$inAttributes = array_key_exists($key, $this->attributes);
+		$snake = snake_case($key);
+
+		$inAttributes = array_key_exists($snake, $this->attributes);
 
 		// If the key references an attribute, we can just go ahead and return the
 		// plain attribute value from the model. This allows every attribute to
 		// be dynamically accessed through the _get method without accessors.
-		if ($inAttributes or $this->hasGetMutator($key))
+		if ($inAttributes or $this->hasGetMutator($snake))
 		{
-			return $this->getPlainAttribute($key);
+			return $this->getPlainAttribute($snake);
 		}
 
 		// If the key already exists in the relationships array, it just means the
 		// relationship has already been loaded, so we'll just return it out of
 		// here because there is no need to query within the relations twice.
-		if (array_key_exists($key, $this->relations))
+		if (array_key_exists($snake, $this->relations))
 		{
-			return $this->relations[$key];
+			return $this->relations[$snake];
 		}
 
 		// If the "attribute" exists as a method on the model, we will just assume
@@ -861,7 +968,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 		{
 			$relations = $this->$key()->getResults();
 
-			return $this->relations[$key] = $relations;
+			return $this->relations[$snake] = $relations;
 		}
 	}
 
@@ -880,7 +987,9 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 		// retrieval from the model to a form that is more useful for usage.
 		if ($this->hasGetMutator($key))
 		{
-			return $this->{'give'.camel_case($key)}($value);
+			$accessor = 'get'.camel_case($key).'Attribute';
+
+			return $this->{$accessor}($value);
 		}
 
 		// If the attribute is listed as a date, we will convert it to a DateTime
@@ -916,7 +1025,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function hasGetMutator($key)
 	{
-		return method_exists($this, 'give'.camel_case($key));
+		return method_exists($this, 'get'.camel_case($key).'Attribute');
 	}
 
 	/**
@@ -928,12 +1037,14 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function setAttribute($key, $value)
 	{
+		$key = snake_case($key);
+
 		// First we will check for the presence of a mutator for the set operation
 		// which simply lets the developers tweak the attribute as it is set on
 		// the model, such as "json_encoding" an listing of data for storage.
 		if ($this->hasSetMutator($key))
 		{
-			$method = 'take'.camel_case($key);
+			$method = 'set'.camel_case($key).'Attribute';
 
 			return $this->{$method}($value);
 		}
@@ -960,7 +1071,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function hasSetMutator($key)
 	{
-		return method_exists($this, 'take'.camel_case($key));
+		return method_exists($this, 'set'.camel_case($key).'Attribute');
 	}
 
 	/**
@@ -1135,6 +1246,37 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	}
 
 	/**
+	 * Get the event dispatcher instance.
+	 *
+	 * @return Illuminate\Events\Dispatcher
+	 */
+	public static function getEventDispatcher()
+	{
+		return static::$dispathcer;
+	}
+
+	/**
+	 * Set the event dispatcher instance.
+	 *
+	 * @param  Illuminate\Events\Dispatcher
+	 * @return void
+	 */
+	public static function setEventDispatcher(Dispatcher $dispatcher)
+	{
+		static::$dispatcher = $dispatcher;
+	}
+
+	/**
+	 * Unset the event dispatcher for models.
+	 *
+	 * @return void
+	 */
+	public static function unsetEventDispatcher()
+	{
+		static::$dispatcher = null;
+	}
+
+	/**
 	 * Dynamically retrieve attributes on the model.
 	 *
 	 * @param  string  $key
@@ -1165,7 +1307,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function __isset($key)
 	{
-		return isset($this->attributes[$key]);
+		return isset($this->attributes[$key]) or isset($this->relations[$key]);
 	}
 
 	/**
@@ -1177,6 +1319,8 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	public function __unset($key)
 	{
 		unset($this->attributes[$key]);
+
+		unset($this->relations[$key]);
 	}
 
 	/**

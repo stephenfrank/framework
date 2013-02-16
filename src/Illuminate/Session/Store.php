@@ -2,6 +2,7 @@
 
 use Closure;
 use ArrayAccess;
+use Illuminate\Support\Str;
 use Illuminate\Cookie\CookieJar;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -81,11 +82,12 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 * Load the session for the request.
 	 *
 	 * @param  Illuminate\CookieJar  $cookies
+	 * @param  string  $name
 	 * @return void
 	 */
-	public function start(CookieJar $cookies)
+	public function start(CookieJar $cookies, $name)
 	{
-		$id = $cookies->get($this->getCookieName());
+		$id = $cookies->get($name);
 
 		// If the session ID was available via the request cookies we'll just retrieve
 		// the session payload from the driver and check the given session to make
@@ -142,11 +144,7 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 */
 	protected function createSessionID()
 	{
-		$pool = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-		$value = substr(str_shuffle(str_repeat($pool, 5)), 0, 40);
-
-		return sha1($value.time());
+		return Str::random(40);
 	}
 
 	/**
@@ -177,7 +175,7 @@ abstract class Store implements TokenProvider, ArrayAccess {
 
 	/**
 	 * Get the full array of session data, including flash data.
-	 * 
+	 *
 	 * @return array
 	 */
 	public function all()
@@ -205,33 +203,47 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 */
 	public function get($key, $default = null)
 	{
-		$data = $this->session['data'];
+		$me = $this;
 
 		// First we will check for the value in the general session data and if it
 		// is not present in that array we'll check the session flash datas to
 		// get the data from there. If netiher is there we give the default.
-		if (isset($data[$key]))
+		$data = $this->session['data'];
+
+		return array_get($data, $key, function() use ($me, $key, $default)
 		{
-			return $data[$key];
-		}
+			return $me->getFlash($key, $default);
+		});
+	}
+
+	/**
+	 * Get the request item from the flash data.
+	 *
+	 * @param  string  $key
+	 * @param  mixed   $default
+	 * @return mixed
+	 */
+	public function getFlash($key, $default = null)
+	{
+		$data = $this->session['data'];
 
 		// Session flash data is only persisted for the next request into the app
 		// which makes it convenient for temporary status messages or various
 		// other strings. We'll check all of this flash data for the items.
-		elseif (isset($data[':new:'][$key]))
+		if ($value = array_get($data, ":new:.$key"))
 		{
-			return $data[':new:'][$key];
+			return $value;
 		}
 
 		// The "old" flash data are the data flashed during the previous request
 		// while the "new" data is the data flashed during the course of this
 		// current request. Usually developers will be retrieving the olds.
-		elseif (isset($data[':old:'][$key]))
+		if ($value = array_get($data, ":old:.$key"))
 		{
-			return $data[':old:'][$key];
+			return $value;
 		}
 
-		return $default instanceof Closure ? $default() : $default;
+		return value($default);
 	}
 
 	/**
@@ -248,18 +260,9 @@ abstract class Store implements TokenProvider, ArrayAccess {
 		// Input that is flashed to the session can be easily retrieved by the
 		// developer, making repopulating old forms and the like much more
 		// convenient, since the request's previous input is available.
-		if (is_null($key))
-		{
-			return $input;
-		}
-		elseif (array_key_exists($key, $input))
-		{
-			return $input[$key];
-		}
-		else
-		{
-			return $default instanceof Closure ? $default() : $default;
-		}
+		if (is_null($key)) return $input;
+
+		return array_get($input, $key, $default);
 	}
 
 	/**
@@ -281,7 +284,7 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 */
 	public function put($key, $value)
 	{
-		$this->session['data'][$key] = $value;
+		array_set($this->session['data'], $key, $value);
 	}
 
 	/**
@@ -343,7 +346,7 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 */
 	public function forget($key)
 	{
-		unset($this->session['data'][$key]);
+		array_forget($this->session['data'], $key);
 	}
 
 	/**
@@ -372,11 +375,10 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	 * Finish the session handling for the request.
 	 *
 	 * @param  Symfony\Component\HttpFoundation\Response  $response
-	 * @param  Illuminate\CookieJar  $cookie
 	 * @param  int  $lifetime
 	 * @return void
 	 */
-	public function finish(Response $response, CookieJar $cookie, $lifetime)
+	public function finish(Response $response, $lifetime)
 	{
 		$time = $this->getCurrentTime();
 
@@ -408,8 +410,6 @@ abstract class Store implements TokenProvider, ArrayAccess {
 		{
 			$this->sweep($time - ($this->lifetime * 60));
 		}
-
-		$this->writeCookie($id, $response, $cookie, $lifetime);
 	}
 
 	/**
@@ -447,17 +447,14 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	/**
 	 * Write the session cookie to the response.
 	 *
-	 * @param  string  $id
-	 * @param  Symfony\Component\HttpFoundation\Response  $response
-	 * @param  Illuminate\Jar  $cookie
+	 * @param  Illuminate\Cookie\CookieJar  $cookie
+	 * @param  string  $name
 	 * @param  int  $lifetime
 	 * @return void
 	 */
-	protected function writeCookie($id, $response, $cookie, $lifetime)
+	public function getCookie(CookieJar $cookie, $name, $lifetime)
 	{
-		$name = $this->getCookieName();
-
-		$response->headers->setCookie($cookie->make($name, $id, $lifetime));
+		return $cookie->make($name, $this->getSessionId(), $lifetime);
 	}
 
 	/**
@@ -523,16 +520,6 @@ abstract class Store implements TokenProvider, ArrayAccess {
 	public function setExists($value)
 	{
 		$this->exists = $value;
-	}
-
-	/**
-	 * Get the session cookie name.
-	 *
-	 * @return string
-	 */
-	public function getCookieName()
-	{
-		return $this->getCookieOption('name');
 	}
 
 	/**

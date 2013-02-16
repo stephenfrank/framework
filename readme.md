@@ -1,5 +1,21 @@
 # Laravel 4 Beta Change Log
 
+## Beta 4
+
+- Added Model::creating(Closure) and Model::updating(Closure) methods for hooking into Eloquent save events. Thank Phil Sturgeon for finally pressuring me into doing this... :)
+- Added `Event::queue` and `Event::flush`.
+- Added a `Str` class in support component. Adopted Patchwork UTF-8 to provide solid UTF-8 handling for the framework.
+- Allow Eloquent attributes to be acceessed by camelCase in addition to snake_case.
+- Added `App::environment` method.
+- Added `resolving` method to IoC container for catching resolutions.
+- Added `shouldReceive` and `swap` methods to facade.
+- Added `bound` method to the IoC container.
+
+## Beta 3
+
+- Fixed a few things in the ArrayStore session driver.
+- Improve reasons in Password Broker.
+
 ## Beta 2
 
 - Migrated to ircmaxell's [password-compat](http://github.com/ircmaxell/password_compat) library for PHP 5.5 forward compatibility on hashes. No backward compatibility breaks.
@@ -26,7 +42,7 @@
 - Added `Config::hasGroup` method.
 - Added `DB::unprepared` method for running raw, unprepared queries against PDO.
 - Allow `:key` place-holder in MessageBag messages.
-- Added `Auth::validate` method for validating credentials without logging in.fatal
+- Added `Auth::validate` method for validating credentials without logging in.
 - Added `Auth::stateless` method for logging in for a single request without sessions or cookies.
 - Added `DB::extend` method for adding custom connection resolvers.
 - Added `each` and `filter` methods to Eloquent collections.
@@ -43,9 +59,20 @@
 - Added ability to specify `prefix` on a route group.
 - Added `setBaseUrl` method to pagination environment.
 - Eloquent Model and Collections objects now include JSON_NUMERIC_CHECK by default on `toJson` method.
-- Eloquent mutators are now prefixed with `give` and `take` instead of `get` and `set`. This is to avoid conflicts with other get and set methods on the model, and in your own code.
+- Eloquent mutators are now prefixed with `getFooAttribute` and `setFooAttribute` instead of `getFoo` and `setFoo`. This is to avoid conflicts with other get and set methods on the model, and in your own code.
 - Added `auth:reminders` Artisan command for generating a migration for the password reminders table.
 - Added `App::fatal` method for registering an error listener for PHP fatal errors.
 - Added `session:table` Artisan command for generating a migration for the session database table.
 - Fix bug when using `first` method on a `belongsToMany` relationship.
 - Added SQL and bindings array to database query exceptions.
+- Allow manipulation of session using "dot" notation.
+- Route regular expression constraints may now be defined globally via `Route::pattern`.
+- Auto-increment fields are now unsigned if the database system supports it.
+- Changed how database seeding works to give more freedom and allow use of Eloquent, etc.
+- Change event dispatcher to use more L3 style conventions instead of passing event objects. Added `until` method.
+- Fix bug with Eloquent eager loads with joins.
+- Allow method specification on class based View composers.
+- Allow method specification on class based Route filters.
+- Added new configuration option for specifying session cookie name.
+- Escape Blade echos by default. Made `{{{ foo }}}` echo for raw output with no escaping.
+- Allow the sending of e-mails with only plain text parts.

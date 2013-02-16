@@ -146,7 +146,9 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 	 */
 	protected function compileEchos($value)
 	{
-		return preg_replace('/\{\{\s*(.+?)\s*\}\}/s', '<?php echo $1; ?>', $value);
+		$value = preg_replace('/\{\{\{\s*(.+?)\s*\}\}\}/s', '<?php echo $1; ?>', $value);
+
+		return preg_replace('/\{\{\s*(.+?)\s*\}\}/s', '<?php echo e($1); ?>', $value);
 	}
 
 	/**
@@ -157,7 +159,7 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 	 */
 	protected function compileOpenings($value)
 	{
-		$pattern = '/(?<!\w)(\s*)@(if|elseif|foreach|for|while)(\s*\(.*\))/';
+		$pattern = '/(?(R)\((?:[^\(\)]|(?R))*\)|(?<!\w)(\s*)@(if|elseif|foreach|for|while)(\s*(?R)+))/';
 
 		return preg_replace($pattern, '$1<?php $2$3: ?>', $value);
 	}

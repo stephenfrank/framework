@@ -197,6 +197,8 @@ class PasswordBroker {
 	 */
 	protected function makeErrorRedirect($reason = '')
 	{
+		if ($reason != '') $reason = 'reminders.'.$reason;
+
 		return $this->redirect->refresh()->with('error', true)->with('reason', $reason);
 	}
 
@@ -212,7 +214,7 @@ class PasswordBroker {
 
 		if ($user and ! $user instanceof RemindableInterface)
 		{
-			throw new \UnexpectedValueException("User must implement Contactable interface.");
+			throw new \UnexpectedValueException("User must implement Remindable interface.");
 		}
 
 		return $user;

@@ -2,22 +2,6 @@
 
 /*
 |--------------------------------------------------------------------------
-| Define The Laravel Version
-|--------------------------------------------------------------------------
-|
-| Here we will set the Laravel version that is utilized to identify this
-| installation of the framework. It is primarily used via the console
-| to display the version to the developer for information purposes.
-|
-*/
-
-if ( ! defined('LARAVEL_VERSION'))
-{
-	define('LARAVEL_VERSION', '4.0.0');
-}
-
-/*
-|--------------------------------------------------------------------------
 | Register Class Imports
 |--------------------------------------------------------------------------
 |
@@ -91,9 +75,9 @@ Facade::setFacadeApplication($app);
 |
 */
 
-$app->bindIf('config.loader', function($app) use ($appPath)
+$app->bindIf('config.loader', function($app)
 {
-	return new FileLoader(new Filesystem, $appPath.'/config');
+	return new FileLoader(new Filesystem, $app['path'].'/config');
 
 }, true);
 
@@ -185,6 +169,19 @@ $services->load($app, $config['providers']);
 
 /*
 |--------------------------------------------------------------------------
+| Boot The Application
+|--------------------------------------------------------------------------
+|
+| Before we handle the requests we need to make sure the application has
+| been booted up. The boot process will call the "boot" method on all
+| service provider giving all a chance to register their overrides.
+|
+*/
+
+$app->boot();
+
+/*
+|--------------------------------------------------------------------------
 | Load The Application Start Script
 |--------------------------------------------------------------------------
 |
@@ -194,7 +191,7 @@ $services->load($app, $config['providers']);
 |
 */
 
-$path = $appPath.'/start/global.php';
+$path = $app['path'].'/start/global.php';
 
 if (file_exists($path)) require $path;
 
@@ -209,7 +206,7 @@ if (file_exists($path)) require $path;
 |
 */
 
-$path = $appPath."/start/{$env}.php";
+$path = $app['path']."/start/{$env}.php";
 
 if (file_exists($path)) require $path;
 
@@ -224,4 +221,4 @@ if (file_exists($path)) require $path;
 |
 */
 
-require $appPath.'/routes.php';
+require $app['path'].'/routes.php';

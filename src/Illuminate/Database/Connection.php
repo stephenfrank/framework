@@ -484,9 +484,7 @@ class Connection implements ConnectionInterface {
 	{
 		if (isset($this->events))
 		{
-			$parameters = compact('query', 'bindings', 'time');
-
-			$this->events->fire('illuminate.query', $parameters);
+			$this->events->fire('illuminate.query', array($query, $bindings, $time));
 		}
 
 		$this->queryLog[] = compact('query', 'bindings', 'time');
@@ -692,6 +690,17 @@ class Connection implements ConnectionInterface {
 	public function getTablePrefix()
 	{
 		return $this->tablePrefix;
+	}
+
+	/**
+	 * Set the table prefix in use by the connection.
+	 *
+	 * @param  string  $prefix
+	 * @return void
+	 */
+	public function setTablePrefix($prefix)
+	{
+		$this->tablePrefix = $prefix;
 	}
 
 	/**
