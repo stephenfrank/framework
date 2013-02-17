@@ -433,77 +433,43 @@ class Builder {
 		return $this;
 	}
 
-	
-	public function whereRelated($relName, $keyCol, $comparator, $relValues)
+	/**
+	 * Constrain results to those related through an Eloquent relation
+	 *
+	 * @param  $relation Relationship method key
+	 * @param  Closure $closure
+	 * @return Illuminate\Database\Eloquent\Builder
+	 */
+	public function whereExistsRelated($relation, $closure = null)
 	{
-	    $relValues = is_array($relValues) ? $relValues : array($relValues);
+		if (! method_exists($this->model, $relation)) {
+			throw new \InvalidArgumentException("Relationship '$relation' for ".get_class($this->model)." does not exist");
+		}
 
-	    if (method_exists($this->model, $relName)) {
+		$pivot = $this->model->$relation();
 
-	        $pivot_obj = $this->model->$relName();
+		// If no closure is given, it will be assumed that the value
+		// is referring to the primary key
+		if (! is_null($closure) and ! $closure instanceof Closure) {
+			$value = $closure;
+			$closure = function ($query, $pivot) use ($value) {
+				$key = $pivot->getRelated()->getKeyName();
+				$table = $pivot->getRelated()->getTable();
+				$query->where($table.'.'.$key, '=', $value);
+			};
+		}
 
-	        if ($pivot_obj instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
-	        	$joinTable = $pivot_obj->getRelated()->getTable();
+		$this->whereExists(function($query) use ($pivot, $closure)
+		{
+			$query->select($query->raw(1));
 
-	        	$otherKey = $pivot_obj->getRelated()->getKeyName();
+		    $pivot->addWhereExistsConstraints($query, $closure);
+		});
 
-	        	$localTable = $this->model->getTable();
-
-	        	$foreignKey = $pivot_obj->getForeignKey();
-	        	
-	        	$pkName = $this->model->getKeyName();
-
-	        	$self = $this;
-	        	foreach ($relValues as $relValue) {
-
-	        	    $this->whereExists(function($query) use ($self, $joinTable, $foreignKey, $localTable, $otherKey, $relValue, $comparator, $keyCol) {
-	        	        $query->select('id');
-	        	        $query->from($joinTable);
-	        	        
-	        	        $query->where("id` = `$localTable.$foreignKey` and `$keyCol", $comparator, $relValue);
-
-	        	    });
-	        	}
-
-
-	        } else {
-	       		$joiningTable = $pivot_obj->getTable();
-	   	    	$otherKey = $pivot_obj->getOtherKey();
-
-	   	    	$localTable = $this->model->getTable();
-
-	   	    	$foreignKey = $pivot_obj->getForeignKey();
-	   	    	
-	   	    	$pkName = $this->model->getKeyName();
-
-	   	    	$self = $this;
-
-	   	    	foreach ($relValues as $relValue) {
-	   	    	    
-	   	    	    $this->whereExists(function($query) use ($self, $joiningTable, $foreignKey, $localTable, $otherKey, $relValue, $pkName, $comparator, $keyCol) {
-	   	    	        $query->select('id');
-	   	    	        $query->from($joiningTable);
-
-	   	    	        // $query->where("$foreignKey` = `$localTable.id` and `$keyCol", $comparator, $relValue);
-	   	    	        $query->where("$foreignKey` = `$localTable.id` and `$otherKey", $comparator, $relValue);
-
-	   	    	    });
-	   	    	}
-
-	        }
-
-
-	    } else {
-	    	throw new \InvalidArgumentException("Relationship '$relName' does not exist");
-	    }
-	    
-	    return $this;
+		return $this;
 	}
 
-	public function whereHasRelated($relName)
-	{
-		return $this->whereRelated($relName, '>', 0);
-	}
+
 
 	public function orderRandom($limit = 10)
 	{

@@ -152,9 +152,33 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return void
 	 */
-	public function addConstraints()
+	public function addConstraints($query)
 	{
-		$this->setJoin()->setWhere();
+		$this->setJoin($query);
+		$this->setWhere($query);
+	}
+
+	/**
+	 * Set the constraints on the where relation exists query.
+	 *
+	 * @return void
+	 */
+	public function addWhereExistsConstraints($query, $closure = null)
+	{
+		$parentKey = $this->parent->getKeyName();
+		$parentTable = $this->parent->getTable();
+		$relatedTable = $this->related->getTable();
+		$relatedKey = $this->related->getKeyName();
+		$foreignKey = $this->getForeignKey();
+		$otherKey = $this->getOtherKey();
+
+		$query->from($this->getTable());
+		$query->whereRaw("`$parentTable`.`$parentKey` = $foreignKey");
+
+		if ($closure) {
+			$query = $query->join($this->related->getTable(), $otherKey, '=', "$relatedTable.$relatedKey");
+			$closure($query, $this);
+		}
 	}
 
 	/**
@@ -196,7 +220,7 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return Illuminate\Database\Eloquent\Relation\BelongsToMany
 	 */
-	protected function setJoin()
+	protected function setJoin($query)
 	{
 		// We need to join to the intermediate table on the related model's primary
 		// key column with the intermediate table's foreign key for the related
@@ -205,7 +229,7 @@ class BelongsToMany extends Relation {
 
 		$key = $baseTable.'.'.$this->related->getKeyName();
 
-		$this->query->join($this->table, $key, '=', $this->getOtherKey());
+		$query->join($this->table, $key, '=', $this->getOtherKey());
 
 		return $this;
 	}
@@ -215,11 +239,11 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return Illuminate\Database\Eloquent\Relation\BelongsToMany
 	 */
-	protected function setWhere()
+	protected function setWhere($query)
 	{
 		$foreign = $this->getForeignKey();
 
-		$this->query->where($foreign, '=', $this->parent->getKey());
+		$query->where($foreign, '=', $this->parent->getKey());
 
 		return $this;
 	}

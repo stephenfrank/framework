@@ -40,7 +40,7 @@ abstract class Relation {
 		$this->parent = $parent;
 		$this->related = $query->getModel();
 
-		$this->addConstraints();
+		$this->addConstraints($this->query);
 	}
 
 	/**
@@ -48,7 +48,9 @@ abstract class Relation {
 	 *
 	 * @return void
 	 */
-	abstract public function addConstraints();
+	abstract public function addConstraints($query);
+
+	abstract public function addWhereExistsConstraints($query);
 
 	/**
 	 * Set the constraints for an eager load of the relation.
