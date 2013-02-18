@@ -1037,7 +1037,7 @@ abstract class Model implements ArrayableInterface, JsonableInterface {
 	 */
 	public function setAttribute($key, $value)
 	{
-		$key = snake_case($key);
+		// $key = snake_case($key);
 
 		// First we will check for the presence of a mutator for the set operation
 		// which simply lets the developers tweak the attribute as it is set on

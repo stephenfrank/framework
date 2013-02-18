@@ -440,7 +440,7 @@ class Builder {
 	 * @param  Closure $closure
 	 * @return Illuminate\Database\Eloquent\Builder
 	 */
-	public function whereExistsRelated($relation, $closure = null)
+	public function whereExistsRelated($relation, $closure = null, $not = false)
 	{
 		if (! method_exists($this->model, $relation)) {
 			throw new \InvalidArgumentException("Relationship '$relation' for ".get_class($this->model)." does not exist");
@@ -459,7 +459,9 @@ class Builder {
 			};
 		}
 
-		$this->whereExists(function($query) use ($pivot, $closure)
+		$method = $not ? 'whereNotExists' : 'whereExists';
+
+		$this->$method(function($query) use ($pivot, $closure)
 		{
 			$query->select($query->raw(1));
 
@@ -469,6 +471,10 @@ class Builder {
 		return $this;
 	}
 
+	public function whereNotExistsRelated($relation, $closure = null)
+	{
+		return $this->whereExistsRelated($relation, $closure, true);
+	}
 
 
 	public function orderRandom($limit = 10)
