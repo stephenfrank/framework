@@ -440,7 +440,7 @@ class Builder {
 	 * @param  Closure $closure
 	 * @return Illuminate\Database\Eloquent\Builder
 	 */
-	public function whereExistsRelated($relation, $closure = null, $not = false)
+	public function whereExistsRelated($relation, $closure = null, $operator = null, $column = null, $not = false)
 	{
 		if (! method_exists($this->model, $relation)) {
 			throw new \InvalidArgumentException("Relationship '$relation' for ".get_class($this->model)." does not exist");
@@ -452,10 +452,11 @@ class Builder {
 		// is referring to the primary key
 		if (! is_null($closure) and ! $closure instanceof Closure) {
 			$value = $closure;
-			$closure = function ($query, $pivot) use ($value) {
-				$key = $pivot->getRelated()->getKeyName();
-				$table = $pivot->getRelated()->getTable();
-				$query->where($table.'.'.$key, '=', $value);
+			$operator = $operator ? $operator : '=';
+
+			$closure = function ($query, $pivot) use ($value, $operator, $column) {
+				$column = $column ? $column : $pivot->getRelated()->getTable().'.'.$pivot->getRelated()->getKeyName();
+				$query->where($column, '=', $value);
 			};
 		}
 
@@ -471,9 +472,9 @@ class Builder {
 		return $this;
 	}
 
-	public function whereNotExistsRelated($relation, $closure = null)
+	public function whereNotExistsRelated($relation, $closure = null, $operator = null, $column = null)
 	{
-		return $this->whereExistsRelated($relation, $closure, true);
+		return $this->whereExistsRelated($relation, $closure, $operator, $column, true);
 	}
 
 
