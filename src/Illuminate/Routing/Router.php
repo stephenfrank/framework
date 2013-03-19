@@ -102,6 +102,13 @@ class Router {
 	protected $runFilters = true;
 
 	/**
+	 * The default actions for a resourceful controller.
+	 *
+	 * @var array
+	 */
+	protected $resourceDefaults = array('index', 'create', 'store', 'show', 'edit', 'update', 'destroy');
+
+	/**
 	 * Create a new router instance.
 	 *
 	 * @param  Illuminate\Container  $container
@@ -174,6 +181,18 @@ class Router {
 	public function delete($pattern, $action)
 	{
 		return $this->createRoute('delete', $pattern, $action);
+	}
+
+	/**
+	 * Add a new route to the collection.
+	 *
+	 * @param  string  $pattern
+	 * @param  mixed   $action
+	 * @return Illuminate\Routing\Route
+	 */
+	public function options($pattern, $action)
+	{
+		return $this->createRoute('options', $pattern, $action);
 	}
 
 	/**
@@ -264,14 +283,60 @@ class Router {
 	 */
 	public function resource($resource, $controller, array $options = array())
 	{
-		$defaults = array('index', 'create', 'store', 'show', 'edit', 'update', 'destroy');
+		// If the resource name contains a slash, we will assume the developer wishes to
+		// register these resource routes with a prefix so we will set that up out of
+		// the box so they don't have to mess with it. Otherwise, we will continue.
+		if (str_contains($resource, '/'))
+		{
+			$this->prefixedResource($resource, $controller, $options);
 
+			return;
+		}
+
+		// We need to extract the base resource from the resource name. Nested resources
+		// are supported in the framework, but we need to know what name to use for a
+		// place-holder on the route wildcards, which should be the base resources.
 		$base = $this->getBaseResource($resource);
+
+		$defaults = $this->resourceDefaults;
 
 		foreach ($this->getResourceMethods($defaults, $options) as $method)
 		{
 			$this->{'addResource'.ucfirst($method)}($resource, $base, $controller);
 		}
+	}
+
+	/**
+	 * Build a set of prefixed resource routes.
+	 *
+	 * @param  string  $resource
+	 * @param  string  $controller
+	 * @param  array   $options
+	 * @return void
+	 */
+	protected function prefixedResource($resource, $controller, array $options)
+	{
+		list($resource, $prefix) = $this->extractResourcePrefix($resource);
+
+		$me = $this;
+
+		return $this->group(array('prefix' => $prefix), function() use ($me, $resource, $controller, $options)
+		{
+			$me->resource($resource, $controller, $options);
+		});
+	}
+
+	/**
+	 * Extract the resource and prefix from a resource name.
+	 *
+	 * @param  string  $resource
+	 * @return array
+	 */
+	protected function extractResourcePrefix($resource)
+	{
+		$segments = explode('/', $resource);
+
+		return array($segments[count($segments) - 1], implode('/', array_slice($segments, 0, -1)));
 	}
 
 	/**
@@ -467,7 +532,37 @@ class Router {
 	 */
 	protected function getResourceAction($resource, $controller, $method)
 	{
-		return array('as' => $resource.'.'.$method, 'uses' => $controller.'@'.$method);
+		$name = $resource.'.'.$method;
+
+		// If we have a group stack, we will append the full prefix onto the resource
+		// route name so that we don't override other route with the same name but
+		// a different prefix. We'll then return out the complete action arrays.
+		if (count($this->groupStack) > 0)
+		{
+			$name = $this->getResourcePrefix($resource, $method);
+		}
+		else
+		{
+			$name = $resource.'.'.$method;
+		}
+
+		return array('as' => $name, 'uses' => $controller.'@'.$method);
+	}
+
+	/**
+	 * Get the resource prefix for a resource route.
+	 *
+	 * @param  string  $resource
+	 * @param  string  $method
+	 * @return string
+	 */
+	protected function getResourcePrefix($resource, $method)
+	{
+		$prefix = str_replace('/', '.', $this->getGroupPrefix());
+
+		if ($prefix != '') $prefix .= '.';
+
+		return "{$prefix}{$resource}.{$method}";
 	}
 
 	/**
@@ -509,9 +604,9 @@ class Router {
 	{
 		if (count($this->groupStack) > 0)
 		{
-			$last = count($this->groupStack) - 1;
+			$last = $this->groupStack[count($this->groupStack) - 1];
 
-			$this->groupStack[] = array_merge_recursive($this->groupStack[$last], $attributes);
+			$this->groupStack[] = array_merge_recursive($last, $attributes);
 		}
 		else
 		{
@@ -546,7 +641,7 @@ class Router {
 		{
 			$index = $groupCount - 1;
 
-			$action = array_merge($this->groupStack[$index], $action);
+			$action = $this->mergeGroup($action, $index);
 		}
 
 		// Next we will parse the pattern and add any specified prefix to the it so
@@ -605,6 +700,62 @@ class Router {
 		}
 
 		throw new \InvalidArgumentException("Unroutable action.");
+	}
+
+	/**
+	 * Merge the current group stack into a given action.
+	 *
+	 * @param  array  $action
+	 * @param  int    $index
+	 * @return array
+	 */
+	protected function mergeGroup($action, $index)
+	{
+		$prefix = $this->mergeGroupPrefix($action);
+
+		$action = array_merge($this->groupStack[$index], $action);
+
+		// If we have a prefix, we will override the merged prefix with this correctly
+		// concatenated one since prefixes shouldn't merge like the other groupable
+		// attributes on the action. Then we can return this final merged arrays.
+		if ($prefix != '') $action['prefix'] = $prefix;
+
+		return $action;
+	}
+
+	/**
+	 * Get the full group prefix for the current stack.
+	 *
+	 * @return string
+	 */
+	protected function getGroupPrefix()
+	{
+		if (count($this->groupStack) > 0)
+		{
+			$group = $this->groupStack[count($this->groupStack) - 1];
+
+			if (isset($group['prefix']))
+			{
+				if (is_array($group['prefix'])) return implode('/', $group['prefix']);
+
+				return $group['prefix'];
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Get the fully merged prefix for a given action.
+	 *
+	 * @param  array   $action
+	 * @return string
+	 */
+	protected function mergeGroupPrefix($action)
+	{
+		$prefix = isset($action['prefix']) ? $action['prefix'] : '';
+
+		return trim($this->getGroupPrefix().'/'.$prefix, '/');
 	}
 
 	/**
@@ -1243,7 +1394,7 @@ class Router {
 	}
 
 	/**
-	 * Disable the runnning of all filters.
+	 * Disable the running of all filters.
 	 *
 	 * @return void
 	 */

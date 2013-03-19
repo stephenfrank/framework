@@ -20,6 +20,19 @@ use Illuminate\Foundation\ProviderRepository;
 
 /*
 |--------------------------------------------------------------------------
+| Bind The Application In The Container
+|--------------------------------------------------------------------------
+|
+| This may look strange, but we actually want to bind the app into itself
+| in case we need to Facade test an application. This will allow us to
+| resolve the "app" key out of this container for this app's facade.
+|
+*/
+
+$app['app'] = $app->share(function($app) { return $app; });
+
+/*
+|--------------------------------------------------------------------------
 | Check For The Test Environment
 |--------------------------------------------------------------------------
 |
@@ -116,7 +129,7 @@ $app->instance('config', $config);
 |
 | Here we will set the default timezone for PHP. PHP is notoriously mean
 | if the timezone is not explicitly set. This will be used by each of
-| the PHP date and date-time functions throoughout the application.
+| the PHP date and date-time functions throughout the application.
 |
 */
 
@@ -202,7 +215,7 @@ if (file_exists($path)) require $path;
 |
 | The environment start script is only loaded if it exists for the app
 | environment currently active, which allows some actions to happen
-| in one environment while not in the other, keeping thigs clean.
+| in one environment while not in the other, keeping things clean.
 |
 */
 

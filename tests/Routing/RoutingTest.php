@@ -142,6 +142,16 @@ class RoutingTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('/foo/{foo}/bar/{bar}/edit', $router->getRoutes()->get('foo.bar.edit')->getPath());
 		$this->assertEquals('/foo/{foo}/bar/{bar}', $router->getRoutes()->get('foo.bar.update')->getPath());
 		$this->assertEquals('/foo/{foo}/bar/{bar}', $router->getRoutes()->get('foo.bar.destroy')->getPath());
+
+		$router->resource('admin/foo.baz', 'FooController');
+
+		$this->assertEquals('/admin/foo/{foo}/baz', $router->getRoutes()->get('admin.foo.baz.index')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz/{baz}', $router->getRoutes()->get('admin.foo.baz.show')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz/create', $router->getRoutes()->get('admin.foo.baz.create')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz', $router->getRoutes()->get('admin.foo.baz.store')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz/{baz}/edit', $router->getRoutes()->get('admin.foo.baz.edit')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz/{baz}', $router->getRoutes()->get('admin.foo.baz.update')->getPath());
+		$this->assertEquals('/admin/foo/{foo}/baz/{baz}', $router->getRoutes()->get('admin.foo.baz.destroy')->getPath());
 	}
 
 
@@ -545,6 +555,21 @@ class RoutingTest extends PHPUnit_Framework_TestCase {
 		});
 
 		$this->assertEquals(array('foo', 'bar'), $router->getRoutes()->get('get /')->getOption('_before'));
+	}
+
+
+	public function testNestedPrefixedRoutes()
+	{
+		$router = new Router(new Illuminate\Container\Container);
+		$router->group(array('prefix' => 'first'), function() use ($router)
+		{
+			$router->group(array('prefix' => 'second'), function() use ($router)
+			{
+				$router->get('third', function() {});
+			});
+		});
+
+		$this->assertInstanceOf('Illuminate\Routing\Route', $router->getRoutes()->get('get first/second/third'));
 	}
 
 }

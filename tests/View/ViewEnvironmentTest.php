@@ -24,6 +24,17 @@ class ViewEnvironmentTest extends PHPUnit_Framework_TestCase {
 	}
 
 
+	public function testExistsPassesAndFailsViews()
+	{
+		$env = $this->getEnvironment();
+		$env->getFinder()->shouldReceive('find')->once()->with('foo')->andThrow('InvalidArgumentException');
+		$env->getFinder()->shouldReceive('find')->once()->with('bar')->andReturn('path.php');
+
+		$this->assertFalse($env->exists('foo'));
+		$this->assertTrue($env->exists('bar'));
+	}
+
+
 	public function testRenderEachCreatesViewForEachItemInArray()
 	{
 		$env = m::mock('Illuminate\View\Environment[make]', $this->getEnvironmentArgs());
@@ -69,6 +80,34 @@ class ViewEnvironmentTest extends PHPUnit_Framework_TestCase {
 
 		$view = $environment->make('view', array('data'));
 		$this->assertTrue($engine === $view->getEngine());
+	}
+
+
+	public function testAddingExtensionPrependsNotAppends()
+	{
+		$environment = $this->getEnvironment();
+		$environment->getFinder()->shouldReceive('addExtension')->once()->with('foo');
+
+		$environment->addExtension('foo', 'bar');
+
+		$extensions = $environment->getExtensions();
+		$this->assertEquals('bar', reset($extensions));
+		$this->assertEquals('foo', key($extensions));
+	}
+
+
+	public function testPrependedExtensionOverridesExistingExtensions()
+	{
+		$environment = $this->getEnvironment();
+		$environment->getFinder()->shouldReceive('addExtension')->once()->with('foo');
+		$environment->getFinder()->shouldReceive('addExtension')->once()->with('baz');
+
+		$environment->addExtension('foo', 'bar');
+		$environment->addExtension('baz', 'bar');
+
+		$extensions = $environment->getExtensions();
+		$this->assertEquals('bar', reset($extensions));
+		$this->assertEquals('baz', key($extensions));
 	}
 
 
@@ -151,7 +190,7 @@ class ViewEnvironmentTest extends PHPUnit_Framework_TestCase {
 		$environment->startSection('foo');
 		echo 'there';
 		$environment->stopSection();
-		$this->assertEquals('hi there', $environment->yieldContent('foo'));	
+		$this->assertEquals('hi there', $environment->yieldContent('foo'));
 	}
 
 
