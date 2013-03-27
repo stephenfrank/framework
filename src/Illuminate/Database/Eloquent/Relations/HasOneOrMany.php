@@ -3,6 +3,7 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 abstract class HasOneOrMany extends Relation {
 
@@ -29,15 +30,43 @@ abstract class HasOneOrMany extends Relation {
 	}
 
 	/**
-	 * Set the base constraints on the relation query.
+	 * 
 	 *
 	 * @return void
 	 */
-	public function addConstraints()
+
+	/**
+	 * Set the base constraints on the relation query.
+	 * @param [type] $query [description]
+	 */
+	public function addConstraints(Builder $query)
 	{
 		$key = $this->parent->getKey();
 
-		$this->query->where($this->foreignKey, '=', $key);
+		$query->where($this->foreignKey, '=', $key);
+	}
+
+	/**
+	 * Set the base constraints on the where exists relation query.
+	 *
+	 * @return void
+	 */
+	public function addWhereExistsConstraints(QueryBuilder $existsQuery, $closure = null)
+	{
+		$parentKey = $this->parent->getKeyName();
+		$parentTable = $this->parent->getTable();
+		$foreignKey = $this->getForeignKey();
+
+		$parentColumn = $existsQuery->getGrammar()->wrap("$parentTable.$parentKey");
+		$foreignColumn = $existsQuery->getGrammar()->wrap($this->getForeignKey());
+
+		$existsQuery->from($this->related->getTable());
+		$existsQuery->whereRaw("$parentColumn = $foreignColumn");
+
+		if ($closure)
+		{
+			$closure($existsQuery, $this);
+		}
 	}
 
 	/**

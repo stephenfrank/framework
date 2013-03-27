@@ -3,6 +3,7 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 abstract class Relation {
 
@@ -40,7 +41,7 @@ abstract class Relation {
 		$this->parent = $parent;
 		$this->related = $query->getModel();
 
-		$this->addConstraints();
+		$this->addConstraints($this->query);
 	}
 
 	/**
@@ -48,7 +49,14 @@ abstract class Relation {
 	 *
 	 * @return void
 	 */
-	abstract public function addConstraints();
+	abstract public function addConstraints(Builder $query);
+
+	/**
+	 * Set the base constraints on the where exists relation query.
+	 *
+	 * @return void
+	 */
+	abstract public function addWhereExistsConstraints(QueryBuilder $existsQuery, $closure = null);
 
 	/**
 	 * Set the constraints for an eager load of the relation.

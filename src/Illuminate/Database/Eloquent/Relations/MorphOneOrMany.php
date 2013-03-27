@@ -42,11 +42,23 @@ abstract class MorphOneOrMany extends HasOneOrMany {
 	 *
 	 * @return void
 	 */
-	public function addConstraints()
+	public function addConstraints(Builder $query)
 	{
-		parent::addConstraints();
+		parent::addConstraints($query);
 
-		$this->query->where($this->morphType, $this->morphClass);
+		$query->where($this->morphType, $this->morphClass);
+	}
+
+	/**
+	 * Set the base constraints on the relation query.
+	 *
+	 * @return void
+	 */
+	public function addWhereExistsConstraints(QueryBuilder $existsQuery, $closure = null)
+	{
+		parent::addConstraints($existsQuery, $closure);
+
+		$existsQuery->where($this->morphType, $this->morphClass);
 	}
 
 	/**

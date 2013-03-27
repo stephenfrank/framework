@@ -3,6 +3,7 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class BelongsTo extends Relation {
 
@@ -43,14 +44,33 @@ class BelongsTo extends Relation {
 	 *
 	 * @return void
 	 */
-	public function addConstraints()
+	public function addConstraints(Builder $query)
 	{
 		// For belongs to relationships, which are essentially the inverse of has one
 		// or has many relationships, we need to actually query on the primary key
 		// of the related models matching on the foreign key that's on a parent.
 		$key = $this->related->getKeyName();
 
-		$this->query->where($key, '=', $this->parent->{$this->foreignKey});
+		$query->where($key, '=', $this->parent->{$this->foreignKey});
+	}
+
+	public function addWhereExistsConstraints(QueryBuilder $existsQuery, $closure = null)
+	{
+		$parentTable = $this->parent->getTable();
+		$foreignKey = $this->getForeignKey();
+		$relatedTable = $this->related->getTable();
+		$relatedKey = $this->related->getKeyName();
+
+		$parentColumn = $existsQuery->getGrammar()->wrap("$parentTable.$foreignKey");
+		$relatedColumn = $existsQuery->getGrammar()->wrap("$relatedTable.$relatedKey");
+
+		$existsQuery->from($this->related->getTable());
+		$existsQuery->whereRaw("$parentColumn = $relatedColumn");		
+
+		if ($closure)
+		{
+			$closure($existsQuery, $this);
+		}
 	}
 
 	/**

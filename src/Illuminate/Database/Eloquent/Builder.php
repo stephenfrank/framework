@@ -458,6 +458,68 @@ class Builder {
 	}
 
 	/**
+	 * Constrain results to those related through an Eloquent relation
+	 *
+	 * @param  $relation Relationship method key
+	 * @param  Closure $closure
+	 * @return Illuminate\Database\Eloquent\Builder
+	 */
+	public function whereExistsRelated($relationKey, $_closure = null, $_operator = null, $_value = null, $not = false)
+	{
+		if (! method_exists($this->model, $relationKey))
+		{
+			throw new \InvalidArgumentException("Relationship '$relationKey' for ".get_class($this->model)." does not exist");
+		}
+
+		$closure = $_closure;
+		$relation = $this->model->$relationKey();
+
+		if (! is_null($_closure) and ! $_closure instanceof Closure)
+		{
+			// Method argument juggling
+			if (is_null($_operator) and is_null($_value))
+			{
+				$column = $relation->getRelated()->getTable().'.'.$relation->getRelated()->getKeyName();
+				$operator = '=';
+				$value = $_closure;
+			}
+			elseif (is_null($_value))
+			{
+				$column = $_closure;
+				$operator = '=';
+				$value = $_operator;
+			}
+			else
+			{
+				$column = $_closure;
+				$operator = $_operator;
+				$value = $_value;
+			}
+
+			$closure = function ($query) use ($value, $operator, $column)
+			{
+				$query->where($column, $operator, $value);
+			};
+		}
+
+		$method = $not ? 'whereNotExists' : 'whereExists';
+
+		$this->$method(function($existsQuery) use ($closure, $relation)
+		{
+			$existsQuery->select($existsQuery->raw(1));
+
+		    $relation->addWhereExistsConstraints($existsQuery, $closure);
+		});
+
+		return $this;
+	}
+
+	public function whereNotExistsRelated($relationKey, $_closure = null, $_operator = null, $_value = null)
+	{
+		return $this->whereExistsRelated($relationKey, $_closure, $_operator, $_value, true);
+	}
+
+	/**
 	 * Dynamically handle calls into the query instance.
 	 *
 	 * @param  string  $method

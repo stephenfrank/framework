@@ -4,6 +4,7 @@ use DateTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class BelongsToMany extends Relation {
 
@@ -152,9 +153,37 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return void
 	 */
-	public function addConstraints()
+	public function addConstraints(Builder $query)
 	{
-		$this->setJoin()->setWhere();
+		$this->setJoin($query);
+		$this->setWhere($query);
+	}
+
+	/**
+	 * Set the constraints on the where relation exists query.
+	 *
+	 * @return void
+	 */
+	public function addWhereExistsConstraints(QueryBuilder $existsQuery, $closure = null)
+	{
+		$parentKey = $this->parent->getKeyName();
+		$parentTable = $this->parent->getTable();
+
+		$parentColumn = $existsQuery->getGrammar()->wrap("$parentTable.$parentKey");
+		$foreignColumn = $existsQuery->getGrammar()->wrap($this->getForeignKey());
+
+		$existsQuery->from($this->getTable());
+		$existsQuery->whereRaw("$parentColumn = $foreignColumn");
+
+		if ($closure)
+		{
+			$relatedTable = $this->related->getTable();
+			$relatedKey = $this->related->getKeyName();
+			$otherKey = $this->getOtherKey();
+
+			$existsQuery = $existsQuery->join($relatedTable, $otherKey, '=', "$relatedTable.$relatedKey");
+			$closure($existsQuery, $this);
+		}
 	}
 
 	/**
@@ -199,7 +228,7 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return Illuminate\Database\Eloquent\Relation\BelongsToMany
 	 */
-	protected function setJoin()
+	protected function setJoin($query)
 	{
 		// We need to join to the intermediate table on the related model's primary
 		// key column with the intermediate table's foreign key for the related
@@ -208,7 +237,7 @@ class BelongsToMany extends Relation {
 
 		$key = $baseTable.'.'.$this->related->getKeyName();
 
-		$this->query->join($this->table, $key, '=', $this->getOtherKey());
+		$query->join($this->table, $key, '=', $this->getOtherKey());
 
 		return $this;
 	}
@@ -218,11 +247,11 @@ class BelongsToMany extends Relation {
 	 *
 	 * @return Illuminate\Database\Eloquent\Relation\BelongsToMany
 	 */
-	protected function setWhere()
+	protected function setWhere($query)
 	{
 		$foreign = $this->getForeignKey();
 
-		$this->query->where($foreign, '=', $this->parent->getKey());
+		$query->where($foreign, '=', $this->parent->getKey());
 
 		return $this;
 	}
