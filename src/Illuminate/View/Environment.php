@@ -10,28 +10,28 @@ class Environment {
 	/**
 	 * The engine implementation.
 	 *
-	 * @var Illuminate\View\Engines\EngineResolver
+	 * @var \Illuminate\View\Engines\EngineResolver
 	 */
 	protected $engines;
 
 	/**
 	 * The view finder implementation.
 	 *
-	 * @var Illuminate\View\ViewFinderInterface
+	 * @var \Illuminate\View\ViewFinderInterface
 	 */
 	protected $finder;
 
 	/**
 	 * The event dispatcher instance.
 	 *
-	 * @var Illuminate\Events\Dispatcher
+	 * @var \Illuminate\Events\Dispatcher
 	 */
 	protected $events;
 
 	/**
 	 * The IoC container instance.
 	 *
-	 * @var Illuminate\Container
+	 * @var \Illuminate\Container
 	 */
 	protected $container;
 
@@ -80,9 +80,9 @@ class Environment {
 	/**
 	 * Create a new view environment instance.
 	 *
-	 * @param  Illuminate\View\Engines\EngineResolver  $engines
-	 * @param  Illuminate\View\ViewFinderInterface  $finder
-	 * @param  Illuminate\Events\Dispatcher  $events
+	 * @param  \Illuminate\View\Engines\EngineResolver  $engines
+	 * @param  \Illuminate\View\ViewFinderInterface  $finder
+	 * @param  \Illuminate\Events\Dispatcher  $events
 	 * @return void
 	 */
 	public function __construct(EngineResolver $engines, ViewFinderInterface $finder, Dispatcher $events)
@@ -98,10 +98,10 @@ class Environment {
 	 * Get a evaluated view contents for the given view.
 	 *
 	 * @param  string  $view
-	 * @param  array   $data
-	 * @return Illuminate\View\View
+	 * @param  mixed   $data
+	 * @return \Illuminate\View\View
 	 */
-	public function make($view, array $data = array())
+	public function make($view, $data = array())
 	{
 		$path = $this->finder->find($view);
 
@@ -176,7 +176,7 @@ class Environment {
 	 * Get the appropriate view engine for the given path.
 	 *
 	 * @param  string  $path
-	 * @return Illuminate\View\Engines\EngineInterface
+	 * @return \Illuminate\View\Engines\EngineInterface
 	 */
 	protected function getEngineFromPath($path)
 	{
@@ -311,7 +311,7 @@ class Environment {
 	/**
 	 * Call the composer for a given view.
 	 *
-	 * @param  Illuminate\View\View  $view
+	 * @param  \Illuminate\View\View  $view
 	 * @return void
 	 */
 	public function callComposer(View $view)
@@ -506,7 +506,7 @@ class Environment {
 	/**
 	 * Get the engine resolver instance.
 	 *
-	 * @return Illuminate\View\Engines\EngineResolver
+	 * @return \Illuminate\View\Engines\EngineResolver
 	 */
 	public function getEngineResolver()
 	{
@@ -516,7 +516,7 @@ class Environment {
 	/**
 	 * Get the view finder instance.
 	 *
-	 * @return Illuminate\View\ViewFinder
+	 * @return \Illuminate\View\ViewFinderInterface
 	 */
 	public function getFinder()
 	{
@@ -526,7 +526,7 @@ class Environment {
 	/**
 	 * Get the event dispatcher instance.
 	 *
-	 * @return Illuminate\Events\Dispatcher
+	 * @return \Illuminate\Events\Dispatcher
 	 */
 	public function getDispatcher()
 	{
@@ -536,7 +536,7 @@ class Environment {
 	/**
 	 * Get the IoC container instance.
 	 *
-	 * @return Illuminate\Container
+	 * @return \Illuminate\Container\Container
 	 */
 	public function getContainer()
 	{
@@ -546,7 +546,7 @@ class Environment {
 	/**
 	 * Set the IoC container instance.
 	 *
-	 * @param  Illuminate\Container  $container
+	 * @param  \Illuminate\Container\Container  $container
 	 * @return void
 	 */
 	public function setContainer(Container $container)

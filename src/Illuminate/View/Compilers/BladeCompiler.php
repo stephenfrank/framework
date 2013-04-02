@@ -31,6 +31,7 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 		'Each',
 		'Yields',
 		'Shows',
+		'Language',
 		'SectionStart',
 		'SectionStop',
 	);
@@ -319,6 +320,23 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 	}
 
 	/**
+	 * Compile Blade language and language choice statements into valid PHP.
+	 *
+	 * @param  string  $value
+	 * @return string
+	 */
+	protected function compileLanguage($value)
+	{
+		$pattern = $this->createMatcher('lang');
+
+		$value = preg_replace($pattern, '$1<?php echo Lang::get$2; ?>', $value);
+
+		$pattern = $this->createMatcher('choice');
+
+		return preg_replace($pattern, '$1<?php echo Lang::choice$2; ?>', $value);
+	}
+
+	/**
 	 * Compile Blade section start statements into valid PHP.
 	 *
 	 * @param  string  $value
@@ -382,7 +400,7 @@ class BladeCompiler extends Compiler implements CompilerInterface {
 	 *
 	 * @param  string  $openTag
 	 * @param  string  $closeTag
-	 * @param  array   $raw
+	 * @param  bool    $raw
 	 * @return void
 	 */
 	public function setContentTags($openTag, $closeTag, $raw = false)

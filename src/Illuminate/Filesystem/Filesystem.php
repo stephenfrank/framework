@@ -25,7 +25,7 @@ class Filesystem {
 	 */
 	public function get($path)
 	{
-		if ($this->exists($path)) return file_get_contents($path);
+		if ($this->isFile($path)) return file_get_contents($path);
 
 		throw new FileNotFoundException("File does not exist at path {$path}");
 	}
@@ -49,7 +49,7 @@ class Filesystem {
 	 */
 	public function getRequire($path)
 	{
-		if ($this->exists($path)) return require $path;
+		if ($this->isFile($path)) return require $path;
 
 		throw new FileNotFoundException("File does not exist at path {$path}");
 	}
@@ -74,7 +74,7 @@ class Filesystem {
 	 */
 	public function put($path, $contents)
 	{
-		return file_put_contents($path, $contents, LOCK_EX);
+		return file_put_contents($path, $contents);
 	}
 
 	/**
@@ -86,7 +86,7 @@ class Filesystem {
 	 */
 	public function append($path, $data)
 	{
-		return file_put_contents($path, $data, LOCK_EX | FILE_APPEND);
+		return file_put_contents($path, $data, FILE_APPEND);
 	}
 
 	/**
@@ -177,6 +177,17 @@ class Filesystem {
 	public function isDirectory($directory)
 	{
 		return is_dir($directory);
+	}
+
+	/**
+	 * Determine if the given path is a file.
+	 *
+	 * @param  string  $file
+	 * @return bool
+	 */
+	public function isFile($file)
+	{
+		return is_file($file);
 	}
 
 	/**

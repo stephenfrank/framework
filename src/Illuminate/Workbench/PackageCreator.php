@@ -7,7 +7,7 @@ class PackageCreator {
 	/**
 	 * The filesystem instance.
 	 *
-	 * @var Illuminate\Filesystem
+	 * @var \Illuminate\Filesystem
 	 */
 	protected $files;
 
@@ -19,7 +19,7 @@ class PackageCreator {
 	protected $basicBlocks = array(
 		'SupportFiles',
 		'TestDirectory',
-		'ServiceProvider'
+		'ServiceProvider',
 	);
 
 	/**
@@ -32,13 +32,13 @@ class PackageCreator {
 		'SupportDirectories',
 		'PublicDirectory',
 		'TestDirectory',
-		'ServiceProvider'
+		'ServiceProvider',
 	);
 
 	/**
 	 * Create a new package creator instance.
 	 *
-	 * @param  Illuminate\Filesystem  $files
+	 * @param  \Illuminate\Filesystem  $files
 	 * @return void
 	 */
 	public function __construct(Filesystem $files)
@@ -49,18 +49,19 @@ class PackageCreator {
 	/**
 	 * Create a new package stub.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $path
 	 * @param  bool    $plain
 	 * @return string
 	 */
-	public function create(Package $package, $path, $plain = false)
+	public function create(Package $package, $path, $plain = true)
 	{
 		$directory = $this->createDirectory($package, $path);
 
-		$blocks = $plain ? $this->basicBlocks : $this->blocks;
-
-		foreach ($blocks as $block)
+		// To create the package, we will spin through a list of building blocks that
+		// make up each package. We'll then call the method to build that block on
+		// the class, which keeps the actual building of stuff nice and cleaned.
+		foreach ($this->getBlocks($plain) as $block)
 		{
 			$this->{"write{$block}"}($package, $directory, $plain);
 		}
@@ -69,15 +70,38 @@ class PackageCreator {
 	}
 
 	/**
+	 * Create a package with all resource directories.
+	 *
+	 * @param  Package  $package
+	 * @param  string   $path
+	 * @return void
+	 */
+	public function createWithResources(Package $package, $path)
+	{
+		return $this->create($package, $path, false);
+	}
+
+	/**
+	 * Get the blocks for a given package.
+	 *
+	 * @param  bool   $plain
+	 * @return array
+	 */
+	protected function getBlocks($plain)
+	{
+		return $plain ? $this->basicBlocks : $this->blocks;
+	}
+
+	/**
 	 * Write the support files to the package root.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
 	public function writeSupportFiles(Package $package, $directory, $plain)
 	{
-		foreach (array('PhpUnit', 'Travis', 'Composer') as $file)
+		foreach (array('PhpUnit', 'Travis', 'Composer', 'Ignore') as $file)
 		{
 			$this->{"write{$file}File"}($package, $directory, $plain);
 		}
@@ -86,31 +110,35 @@ class PackageCreator {
 	/**
 	 * Write the PHPUnit stub file.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
 	protected function writePhpUnitFile(Package $package, $directory)
 	{
-		$this->files->copy(__DIR__.'/stubs/phpunit.xml', $directory.'/phpunit.xml');
+		$stub = __DIR__.'/stubs/phpunit.xml';
+
+		$this->files->copy($stub, $directory.'/phpunit.xml');
 	}
 
 	/**
 	 * Write the Travis stub file.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
 	protected function writeTravisFile(Package $package, $directory)
 	{
-		$this->files->copy(__DIR__.'/stubs/.travis.yml', $directory.'/.travis.yml');
+		$stub = __DIR__.'/stubs/.travis.yml';
+
+		$this->files->copy($stub, $directory.'/.travis.yml');
 	}
 
 	/**
 	 * Write the Composer.json stub file.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
@@ -118,7 +146,7 @@ class PackageCreator {
 	{
 		$stub = $this->getComposerStub($plain);
 
-		$stub = $this->formatPackageStub($stub, $package);
+		$stub = $this->formatPackageStub($package, $stub);
 
 		$this->files->put($directory.'/composer.json', $stub);
 	}
@@ -131,20 +159,27 @@ class PackageCreator {
 	 */
 	protected function getComposerStub($plain)
 	{
-		if ($plain)
-		{
-			return $this->files->get(__DIR__.'/stubs/plain.composer.json');
-		}
-		else
-		{
-			return $this->files->get(__DIR__.'/stubs/composer.json');
-		}
+		if ($plain) return $this->files->get(__DIR__.'/stubs/plain.composer.json');
+
+		return $this->files->get(__DIR__.'/stubs/composer.json');
+	}
+
+	/**
+	 * Write the stub .gitignore file for the package.
+	 *
+	 * @param  \Illuminate\Workbench\Package  $package
+	 * @param  string  $directory
+	 * @return void
+	 */
+	public function writeIgnoreFile(Package $package, $directory, $plain)
+	{
+		$this->files->copy(__DIR__.'/stubs/gitignore.txt', $directory.'/.gitignore');	
 	}
 
 	/**
 	 * Create the support directories for a package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
@@ -152,21 +187,34 @@ class PackageCreator {
 	{
 		foreach (array('config', 'lang', 'migrations', 'views') as $support)
 		{
-			// Once we create the source directory, we will write an empty file to the
-			// directory so that it will be kept in source control allowing the dev
-			// to go ahead and push these components to Github right on creation.
-			$path = $directory.'/src/'.$support;
-
-			$this->files->makeDirectory($path, 0777, true);
-
-			$this->files->put($path.'/.gitkeep', '');
+			$this->writeSupportDirectory($package, $support, $directory);
 		}
+	}
+
+	/**
+	 * Write a specific support directory for the package.
+	 *
+	 * @param  \Illuminate\Workbench\Package  $package
+	 * @param  string  $support
+	 * @param  string  $directory
+	 * @return void
+	 */
+	protected function writeSupportDirectory(Package $package, $support, $directory)
+	{
+		// Once we create the source directory, we will write an empty file to the
+		// directory so that it will be kept in source control allowing the dev
+		// to go ahead and push these components to Github right on creation.
+		$path = $directory.'/src/'.$support;
+
+		$this->files->makeDirectory($path, 0777, true);
+
+		$this->files->put($path.'/.gitkeep', '');
 	}
 
 	/**
 	 * Create the public directory for the package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
@@ -182,7 +230,7 @@ class PackageCreator {
 	/**
 	 * Create the test directory for the package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
@@ -196,7 +244,7 @@ class PackageCreator {
 	/**
 	 * Write the stub ServiceProvider for the package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return void
 	 */
@@ -205,10 +253,21 @@ class PackageCreator {
 		// Once we have the service provider stub, we will need to format it and make
 		// the necessary replacements to the class, namespaces, etc. Then we'll be
 		// able to write it out into the package's workbench directory for them.
-		$stub = $this->getProviderStub($plain);
+		$stub = $this->getProviderStub($package, $plain);
 
-		$stub = $this->formatPackageStub($stub, $package);
+		$this->writeProviderStub($package, $directory, $stub);
+	}
 
+	/**
+	 * Write the service provider stub for the package.
+	 *
+	 * @param  \Illuminate\Workbench\Package  $package
+	 * @param  string  $directory
+	 * @param  string  $stub
+	 * @return void
+	 */
+	protected function writeProviderStub(Package $package, $directory, $stub)
+	{
 		$path = $this->createClassDirectory($package, $directory);
 
 		// The primary source directory where the package's classes will live may not
@@ -222,10 +281,22 @@ class PackageCreator {
 	/**
 	 * Get the stub for a ServiceProvider.
 	 *
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  bool    $plain
 	 * @return string
 	 */
-	protected function getProviderStub($plain)
+	protected function getProviderStub(Package $package, $plain)
+	{
+		return $this->formatPackageStub($package, $this->getProviderFile($plain));
+	}
+
+	/**
+	 * Load the raw service provider file.
+	 *
+	 * @param  bool   $plain
+	 * @return string
+	 */
+	protected function getProviderFile($plain)
 	{
 		if ($plain)
 		{
@@ -240,7 +311,7 @@ class PackageCreator {
 	/**
 	 * Create the main source directory for the package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $directory
 	 * @return string
 	 */
@@ -259,20 +330,15 @@ class PackageCreator {
 	/**
 	 * Format a generic package stub file.
 	 *
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $stub
-	 * @param  Illuminate\Workbench\Package  $package
 	 * @return string
 	 */
-	protected function formatPackageStub($stub, Package $package)
+	protected function formatPackageStub(Package $package, $stub)
 	{
-		// When replacing values in the stub, we can just take the object vars of
-		// the package and snake case them. This should give us the array with
-		// all the necessary replacements variables present and ready to go.
 		foreach (get_object_vars($package) as $key => $value)
 		{
-			$key = '{{'.snake_case($key).'}}';
-
-			$stub = str_replace($key, $value, $stub);
+			$stub = str_replace('{{'.snake_case($key).'}}', $value, $stub);
 		}
 		
 		return $stub;
@@ -281,7 +347,7 @@ class PackageCreator {
 	/**
 	 * Create a workbench directory for the package.
 	 *
-	 * @param  Illuminate\Workbench\Package  $package
+	 * @param  \Illuminate\Workbench\Package  $package
 	 * @param  string  $path
 	 * @return string
 	 */

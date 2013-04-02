@@ -24,14 +24,14 @@ class SeedCommand extends Command {
 	/**
 	 * The connection resolver instance.
 	 *
-	 * @var  Illuminate\Database\ConnectionResolverInterface
+	 * @var  \Illuminate\Database\ConnectionResolverInterface
 	 */
 	protected $resolver;
 
 	/**
 	 * Create a new database seed command instance.
 	 *
-	 * @param  Illuminate\Database\ConnectionResolverInterface  $resolver
+	 * @param  \Illuminate\Database\ConnectionResolverInterface  $resolver
 	 * @return void
 	 */
 	public function __construct(Resolver $resolver)
@@ -62,7 +62,9 @@ class SeedCommand extends Command {
 	 */
 	protected function getSeeder()
 	{
-		return $this->laravel->make($this->input->getOption('class'));
+		$class = $this->laravel->make($this->input->getOption('class'));
+
+		return $class->setContainer($this->laravel)->setCommand($this);
 	}
 
 	/**

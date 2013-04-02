@@ -16,7 +16,7 @@ class Environment {
 	/**
 	 * The view environment instance.
 	 *
-	 * @var Illuminate\View\Environment
+	 * @var \Illuminate\View\Environment
 	 */
 	protected $view;
 
@@ -33,10 +33,10 @@ class Environment {
 	 * @var string
 	 */
 	protected $viewName;
-	
+
 	/**
 	 * The number of the current page.
-	 * 
+	 *
 	 * @var int
 	 */
 	protected $currentPage;
@@ -56,18 +56,27 @@ class Environment {
 	protected $baseUrl;
 
 	/**
+	 * The input parameter used for the current page.
+	 *
+	 * @var string
+	 */
+	protected $pageName;
+
+	/**
 	 * Create a new pagination environment.
 	 *
 	 * @param  Symfony\Component\HttpFoundation\Request  $request
-	 * @param  Illuminate\View\Environment  $view
-	 * @param  Illuminate\Translation\TranslatorInterface  $trans
+	 * @param  \Illuminate\View\Environment  $view
+	 * @param  Symfony\Component\Translation\TranslatorInterface  $trans
+	 * @param  string  $pageName
 	 * @return void
 	 */
-	public function __construct(Request $request, ViewEnvironment $view, TranslatorInterface $trans)
+	public function __construct(Request $request, ViewEnvironment $view, TranslatorInterface $trans, $pageName = 'page')
 	{
 		$this->view = $view;
 		$this->trans = $trans;
 		$this->request = $request;
+		$this->pageName = $pageName;
 		$this->setupPaginationEnvironment();
 	}
 
@@ -87,7 +96,7 @@ class Environment {
 	 * @param  array  $items
 	 * @param  int    $perPage
 	 * @param  int    $total
-	 * @return Illuminate\Pagination\Paginator
+	 * @return \Illuminate\Pagination\Paginator
 	 */
 	public function make(array $items, $total, $perPage)
 	{
@@ -99,8 +108,8 @@ class Environment {
 	/**
 	 * Get the pagination view.
 	 *
-	 * @param  Illuminate\Pagination\Paginator  $paginator
-	 * @return Illuminate\View\View
+	 * @param  \Illuminate\Pagination\Paginator  $paginator
+	 * @return \Illuminate\View\View
 	 */
 	public function getPaginationView(Paginator $paginator)
 	{
@@ -116,7 +125,7 @@ class Environment {
 	 */
 	public function getCurrentPage()
 	{
-		$page = (int) $this->currentPage ?: $this->request->query->get('page', 1);
+		$page = (int) $this->currentPage ?: $this->request->query->get($this->pageName, 1);
 
 		if ($page < 1 or filter_var($page, FILTER_VALIDATE_INT) === false)
 		{
@@ -125,10 +134,10 @@ class Environment {
 
 		return $page;
 	}
-	
+
 	/**
 	 * Set the number of the current page.
-	 * 
+	 *
 	 * @param  int  $number
 	 * @return void
 	 */
@@ -156,6 +165,27 @@ class Environment {
 	public function setBaseUrl($baseUrl)
 	{
 		$this->baseUrl = $baseUrl;
+	}
+
+	/**
+	 * Set the input page parameter name used by the paginator.
+	 *
+	 * @param  string  $pageName
+	 * @return void
+	 */
+	public function setPageName($pageName)
+	{
+		$this->pageName = $pageName;
+	}
+
+	/**
+	 * Get the input page parameter name used by the paginator.
+	 *
+	 * @return string
+	 */
+	public function getPageName()
+	{
+		return $this->pageName;
 	}
 
 	/**
@@ -224,7 +254,7 @@ class Environment {
 	/**
 	 * Get the current view driver.
 	 *
-	 * @return Illuminate\View\Environment
+	 * @return \Illuminate\View\Environment
 	 */
 	public function getViewDriver()
 	{
@@ -234,7 +264,7 @@ class Environment {
 	/**
 	 * Set the current view driver.
 	 *
-	 * @param  Illuminate\View\Environment  $view
+	 * @param  \Illuminate\View\Environment  $view
 	 * @return void
 	 */
 	public function setViewDriver(ViewEnvironment $view)

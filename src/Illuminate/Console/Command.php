@@ -1,6 +1,7 @@
 <?php namespace Illuminate\Console;
 
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -9,7 +10,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	/**
 	 * The Laravel application instance.
 	 *
-	 * @var Illuminate\Foundation\Application
+	 * @var \Illuminate\Foundation\Application
 	 */
 	protected $laravel;
 
@@ -124,12 +125,28 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	}
 
 	/**
+	 * Call another console command silently.
+	 *
+	 * @param  string  $command
+	 * @param  array   $arguments
+	 * @return mixed
+	 */
+	public function callSilent($command, array $arguments = array())
+	{
+		$instance = $this->getApplication()->find($command);
+
+		$arguments['command'] = $command;
+
+		return $instance->run(new ArrayInput($arguments), new NullOutput);	
+	}
+
+	/**
 	 * Get the value of a command argument.
 	 *
 	 * @param  string  $key
 	 * @return string|array
 	 */
-	protected function argument($key = null)
+	public function argument($key = null)
 	{
 		if (is_null($key)) return $this->input->getArguments();
 
@@ -142,7 +159,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $key
 	 * @return string|array
 	 */
-	protected function option($key = null)
+	public function option($key = null)
 	{
 		if (is_null($key)) return $this->input->getOptions();
 
@@ -156,7 +173,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  bool    $default
 	 * @return bool
 	 */
-	protected function confirm($question, $default = true)
+	public function confirm($question, $default = true)
 	{
 		$dialog = $this->getHelperSet()->get('dialog');
 
@@ -170,7 +187,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $default
 	 * @return string
 	 */
-	protected function ask($question, $default = null)
+	public function ask($question, $default = null)
 	{
 		$dialog = $this->getHelperSet()->get('dialog');
 
@@ -184,7 +201,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $default
 	 * @return string
 	 */
-	protected function secret($question, $default = null)
+	public function secret($question, $default = null)
 	{
 		$dialog = $this->getHelperSet()->get('dialog');
 
@@ -197,7 +214,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $string
 	 * @return void
 	 */
-	protected function line($string)
+	public function line($string)
 	{
 		$this->output->writeln($string);
 	}
@@ -208,7 +225,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $string
 	 * @return void
 	 */
-	protected function info($string)
+	public function info($string)
 	{
 		$this->output->writeln("<info>$string</info>");
 	}
@@ -219,7 +236,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $string
 	 * @return void
 	 */
-	protected function comment($string)
+	public function comment($string)
 	{
 		$this->output->writeln("<comment>$string</comment>");
 	}
@@ -230,7 +247,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $string
 	 * @return void
 	 */
-	protected function question($string)
+	public function question($string)
 	{
 		$this->output->writeln("<question>$string</question>");
 	}
@@ -241,7 +258,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	 * @param  string  $string
 	 * @return void
 	 */
-	protected function error($string)
+	public function error($string)
 	{
 		$this->output->writeln("<error>$string</error>");
 	}
@@ -279,7 +296,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	/**
 	 * Set the Laravel application instance.
 	 *
-	 * @return Illuminate\Foundation\Application
+	 * @return \Illuminate\Foundation\Application
 	 */
 	public function getLaravel()
 	{
@@ -289,7 +306,7 @@ class Command extends \Symfony\Component\Console\Command\Command {
 	/**
 	 * Set the Laravel application instance.
 	 *
-	 * @param  Illuminate\Foundation\Application  $laravel
+	 * @param  \Illuminate\Foundation\Application  $laravel
 	 * @return void
 	 */
 	public function setLaravel($laravel)

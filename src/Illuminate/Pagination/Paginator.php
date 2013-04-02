@@ -10,7 +10,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	/**
 	 * The pagination environment.
 	 *
-	 * @var Illuminate\Pagination\Environment
+	 * @var \Illuminate\Pagination\Environment
 	 */
 	protected $env;
 
@@ -59,7 +59,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	/**
 	 * Create a new Paginator instance.
 	 *
-	 * @param  Illuminate\Pagination\Environment  $env
+	 * @param  \Illuminate\Pagination\Environment  $env
 	 * @param  array  $items
 	 * @param  int    $total
 	 * @param  int    $perPage
@@ -76,7 +76,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	/**
 	 * Setup the pagination context (current and last page).
 	 *
-	 * @return Illuminate\Pagination\Paginator
+	 * @return \Illuminate\Pagination\Paginator
 	 */
 	public function setupPaginationContext()
 	{
@@ -122,7 +122,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	/**
 	 * Get the pagination links view.
 	 *
-	 * @return Illuminate\View\View
+	 * @return \Illuminate\View\View
 	 */
 	public function links()
 	{
@@ -137,17 +137,19 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	 */
 	public function getUrl($page)
 	{
-		$url = $this->env->getCurrentUrl().'?page='.$page;
+		$parameters = array(
+			$this->env->getPageName() => $page,
+		);
 
 		// If we have any extra query string key / value pairs that need to be added
 		// onto the URL, we will put them in query string form and then attach it
 		// to the URL. This allows for extra information like sortings storage.
 		if (count($this->query) > 0)
 		{
-			$url = $url.'&'.http_build_query($this->query);
+			$parameters = array_merge($parameters, $this->query);
 		}
 
-		return $url;
+		return $this->env->getCurrentUrl().'?'.http_build_query($parameters, null, '&');
 	}
 
 	/**
@@ -155,7 +157,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	 *
 	 * @param  string  $key
 	 * @param  string  $value
-	 * @return Illuminate\Pagination\Paginator
+	 * @return \Illuminate\Pagination\Paginator
 	 */
 	public function appends($key, $value)
 	{
@@ -167,7 +169,7 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	 *
 	 * @param  string  $key
 	 * @param  string  $value
-	 * @return Illuminate\Pagination\Paginator
+	 * @return \Illuminate\Pagination\Paginator
 	 */
 	public function addQuery($key, $value)
 	{
@@ -194,6 +196,16 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	public function getLastPage()
 	{
 		return $this->lastPage;
+	}
+
+	/**
+	 * Get the number of items to be displayed per page.
+	 *
+	 * @return int
+	 */
+	public function getPerPage()
+	{
+		return $this->perPage;
 	}
 
 	/**

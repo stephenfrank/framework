@@ -18,14 +18,14 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * The Presence Verifier implementation.
 	 *
-	 * @var Illuminate\Validation\PresenceVerifierInterface
+	 * @var \Illuminate\Validation\PresenceVerifierInterface
 	 */
 	protected $presenceVerifier;
 
 	/**
 	 * The message bag instance.
 	 *
-	 * @var Illuminate\Support\MessageBag
+	 * @var \Illuminate\Support\MessageBag
 	 */
 	protected $messages;
 
@@ -56,6 +56,13 @@ class Validator implements MessageProviderInterface {
 	 * @var array
 	 */
 	protected $customMessages = array();
+
+	/**
+	 * The array of custom attribute names.
+	 *
+	 * @var array
+	 */
+	protected $customAttributes = array();
 
 	/**
 	 * All of the custom validator extensions.
@@ -1024,11 +1031,19 @@ class Validator implements MessageProviderInterface {
 	 */
 	protected function getAttribute($attribute)
 	{
+		// The developer may dynamically specify the array of custom attributes
+		// on this Validator instance. If the attribute exists in this array
+		// it takes precedence over all other ways we can pull attributes.
+		if (isset($this->customAttributes[$attribute]))
+		{
+			return $this->customAttributes[$attribute];
+		}
+
+		$key = "validation.attributes.{$attribute}";
+
 		// We allow for the developer to specify language lines for each of the
 		// attributes allowing for more displayable counterparts of each of
 		// the attributes. This provides the ability for simple formats.
-		$key = "validation.attributes.{$attribute}";
-
 		if (($line = $this->translator->trans($key)) !== $key)
 		{
 			return $line;
@@ -1407,6 +1422,19 @@ class Validator implements MessageProviderInterface {
 	}
 
 	/**
+	 * Set the custom attributes on the validator.
+	 *
+	 * @param  array  $attributes
+	 * @return \Illuminate\Validation\Validator
+	 */
+	public function setAttributeNames(array $attributes)
+	{
+		$this->customAttributes = $attributes;
+
+		return $this;
+	}
+
+	/**
 	 * Get the files under validation.
 	 *
 	 * @return array
@@ -1420,7 +1448,7 @@ class Validator implements MessageProviderInterface {
 	 * Set the files under validation.
 	 *
 	 * @param  array  $files
-	 * @return Illuminate\Validation\Validator
+	 * @return \Illuminate\Validation\Validator
 	 */
 	public function setFiles(array $files)
 	{
@@ -1432,7 +1460,7 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * Get the Presence Verifier implementation.
 	 *
-	 * @return Illuminate\Validation\PresenceVerifierInterface
+	 * @return \Illuminate\Validation\PresenceVerifierInterface
 	 */
 	public function getPresenceVerifier()
 	{
@@ -1447,7 +1475,7 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * Set the Presence Verifier implementation.
 	 *
-	 * @param  Illuminate\Validation\PresenceVerifierInterface  $presenceVerifier
+	 * @param  \Illuminate\Validation\PresenceVerifierInterface  $presenceVerifier
 	 * @return void
 	 */
 	public function setPresenceVerifier(PresenceVerifierInterface $presenceVerifier)
@@ -1479,7 +1507,7 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * Get the message container for the validator.
 	 *
-	 * @return Illuminate\Support\MessageBag
+	 * @return \Illuminate\Support\MessageBag
 	 */
 	public function messages()
 	{
@@ -1489,7 +1517,7 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * An alternative more semantic shortcut to the message container.
 	 *
-	 * @return Illuminate\Support\MessageBag
+	 * @return \Illuminate\Support\MessageBag
 	 */
 	public function errors()
 	{
@@ -1499,7 +1527,7 @@ class Validator implements MessageProviderInterface {
 	/**
 	 * Get the messages for the instance.
 	 *
-	 * @return Illuminate\Support\MessageBag
+	 * @return \Illuminate\Support\MessageBag
 	 */
 	public function getMessageBag()
 	{

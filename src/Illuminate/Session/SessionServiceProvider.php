@@ -21,12 +21,52 @@ class SessionServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
+		$this->setupDefaultDriver();
+
+		$this->registerSessionManager();
+
+		$this->registerSessionDriver();
+	}
+
+	/**
+	 * Setup the default session driver for the application.
+	 *
+	 * @return void
+	 */
+	protected function setupDefaultDriver()
+	{
+		if ($this->app->runningInConsole())
+		{
+			$this->app['config']['session.driver'] = 'array';
+		}
+	}
+
+	/**
+	 * Register the session manager instance.
+	 *
+	 * @return void
+	 */
+	protected function registerSessionManager()
+	{
+		$this->app['session.manager'] = $this->app->share(function($app)
+		{
+			return new SessionManager($app);
+		});
+	}
+
+	/**
+	 * Register the session driver instance.
+	 *
+	 * @return void
+	 */
+	protected function registerSessionDriver()
+	{
 		$this->app['session'] = $this->app->share(function($app)
 		{
 			// First, we will create the session manager which is responsible for the
 			// creation of the various session drivers when they are needed by the
 			// application instance, and will resolve them on a lazy load basis.
-			$manager = new SessionManager($app);
+			$manager = $app['session.manager'];
 
 			$driver = $manager->driver();
 
@@ -68,7 +108,7 @@ class SessionServiceProvider extends ServiceProvider {
 	/**
 	 * Register the session booting event.
 	 *
-	 * @param  Illuminate\Foundation\Application  $app
+	 * @param  \Illuminate\Foundation\Application  $app
 	 * @return void
 	 */
 	protected function registerBootingEvent($app)
@@ -82,7 +122,7 @@ class SessionServiceProvider extends ServiceProvider {
 	/**
 	 * Register the session close event.
 	 *
-	 * @param  Illuminate\Foundation\Application  $app
+	 * @param  \Illuminate\Foundation\Application  $app
 	 * @param  array $config
 	 * @return void
 	 */
@@ -111,7 +151,7 @@ class SessionServiceProvider extends ServiceProvider {
 	/**
 	 * Create a session cookie based on the given config.
 	 *
-	 * @param  Illuminate\Session\Store  $session
+	 * @param  \Illuminate\Session\Store  $session
 	 * @param  array  $config
 	 * @return Symfony\Component\HttpFoundation\Cookie
 	 */

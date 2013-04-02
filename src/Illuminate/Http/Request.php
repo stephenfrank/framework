@@ -1,24 +1,64 @@
 <?php namespace Illuminate\Http;
 
 use Illuminate\Session\Store as SessionStore;
+use Symfony\Component\HttpFoundation\ParameterBag;
 
 class Request extends \Symfony\Component\HttpFoundation\Request {
 
 	/**
+	 * The decoded JSON content for the request.
+	 *
+	 * @var string
+	 */
+	protected $json;
+
+	/**
 	 * The Illuminate session store implementation.
 	 *
-	 * @var Illuminate\Session\Store
+	 * @var \Illuminate\Session\Store
 	 */
 	protected $sessionStore;
 
 	/**
 	 * Return the Request instance.
 	 *
-	 * @return Illuminate\Http\Request
+	 * @return \Illuminate\Http\Request
 	 */
 	public function instance()
 	{
 		return $this;
+	}
+
+	/**
+	 * Setup the path info for a locale based URI.
+	 *
+	 * @param  array   $locales
+	 * @return string
+	 */
+	public function handleUriLocales(array $locales)
+	{
+		$path = $this->getPathInfo();
+
+		foreach ($locales as $locale)
+		{
+			if (preg_match("#^\/{$locale}(?:$|/)#i", $path))
+			{
+				return $this->removeLocaleFromUri($locale);
+			}
+		}
+	}
+
+	/**
+	 * Remove the given locale from the URI.
+	 *
+	 * @param  string  $locale
+	 * @return string
+	 */
+	protected function removeLocaleFromUri($locale)
+	{
+		$this->pathInfo = '/'.ltrim(substr($this->getPathInfo(), strlen($locale) + 1), '/');
+
+		return $locale;
 	}
 
 	/**
@@ -148,10 +188,7 @@ class Request extends \Symfony\Component\HttpFoundation\Request {
 			return true;
 		}
 
-		if (is_array($this->input($key)))
-		{
-			return true;
-		}
+		if (is_array($this->input($key))) return true;
 
 		return trim((string) $this->input($key)) !== '';
 	}
@@ -390,9 +427,14 @@ class Request extends \Symfony\Component\HttpFoundation\Request {
 	 */
 	public function json($key = null, $default = null)
 	{
-		$json = json_decode($this->getContent(), true);
+		if ( ! isset($this->json))
+		{
+			$this->json = new ParameterBag((array) json_decode($this->getContent(), true));
+		}
 
-		return $json ? array_get($json, $key, $default) : false;
+		if (is_null($key)) return $this->json;
+
+		return array_get($this->json->all(), $key, $default);
 	}
 
 	/**
@@ -402,13 +444,25 @@ class Request extends \Symfony\Component\HttpFoundation\Request {
 	 */
 	protected function getInputSource()
 	{
+		if ($this->isJson()) return $this->json();
+
 		return $this->getMethod() == 'GET' ? $this->query : $this->request;
+	}
+
+	/**
+	 * Determine if the request is sending JSON.
+	 *
+	 * @return bool
+	 */
+	public function isJson()
+	{
+		return str_contains($this->server->get('CONTENT_TYPE'), '/json');
 	}
 
 	/**
 	 * Get the Illuminate session store implementation.
 	 *
-	 * @return Illuminate\Session\Store
+	 * @return \Illuminate\Session\Store
 	 */
 	public function getSessionStore()
 	{
@@ -423,7 +477,7 @@ class Request extends \Symfony\Component\HttpFoundation\Request {
 	/**
 	 * Set the Illuminate session store implementation.
 	 *
-	 * @param  Illuminate\Session\Store  $session
+	 * @param  \Illuminate\Session\Store  $session
 	 * @return void
 	 */
 	public function setSessionStore(SessionStore $session)

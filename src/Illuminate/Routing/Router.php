@@ -55,14 +55,14 @@ class Router {
 	/**
 	 * The inversion of control container instance.
 	 *
-	 * @var Illuminate\Container
+	 * @var \Illuminate\Container
 	 */
 	protected $container;
 
 	/**
 	 * The controller inspector instance.
 	 *
-	 * @var Illuminate\Routing\Controllers\Inspector
+	 * @var \Illuminate\Routing\Controllers\Inspector
 	 */
 	protected $inspector;
 
@@ -90,7 +90,7 @@ class Router {
 	/**
 	 * The current route being executed.
 	 *
-	 * @var Illuminate\Routing\Route
+	 * @var \Illuminate\Routing\Route
 	 */
 	protected $currentRoute;
 
@@ -111,7 +111,7 @@ class Router {
 	/**
 	 * Create a new router instance.
 	 *
-	 * @param  Illuminate\Container  $container
+	 * @param  \Illuminate\Container\Container  $container
 	 * @return void
 	 */
 	public function __construct(Container $container = null)
@@ -128,7 +128,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function get($pattern, $action)
 	{
@@ -140,7 +140,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function post($pattern, $action)
 	{
@@ -152,7 +152,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function put($pattern, $action)
 	{
@@ -164,7 +164,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function patch($pattern, $action)
 	{
@@ -176,7 +176,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function delete($pattern, $action)
 	{
@@ -188,7 +188,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function options($pattern, $action)
 	{
@@ -201,7 +201,7 @@ class Router {
 	 * @param  string  $method
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function match($method, $pattern, $action)
 	{
@@ -213,7 +213,7 @@ class Router {
 	 *
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function any($pattern, $action)
 	{
@@ -239,7 +239,7 @@ class Router {
 	 *
 	 * @param  string  $uri
 	 * @param  string  $controller
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function controller($uri, $controller)
 	{
@@ -620,7 +620,7 @@ class Router {
 	 * @param  string  $method
 	 * @param  string  $pattern
 	 * @param  mixed   $action
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	protected function createRoute($method, $pattern, $action)
 	{
@@ -713,7 +713,7 @@ class Router {
 	{
 		$prefix = $this->mergeGroupPrefix($action);
 
-		$action = array_merge($this->groupStack[$index], $action);
+		$action = array_merge_recursive($this->groupStack[$index], $action);
 
 		// If we have a prefix, we will override the merged prefix with this correctly
 		// concatenated one since prefixes shouldn't merge like the other groupable
@@ -775,7 +775,7 @@ class Router {
 	/**
 	 * Set the attributes and requirements on the route.
 	 *
-	 * @param  Illuminate\Routing\Route  $route
+	 * @param  \Illuminate\Routing\Route  $route
 	 * @param  array  $action
 	 * @param  array  $optional
 	 * @return void
@@ -970,7 +970,7 @@ class Router {
 	 * Match the given request to a route object.
 	 *
 	 * @param  Symfony\Component\HttpFoundation\Request  $request
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	protected function findRoute(Request $request)
 	{
@@ -979,7 +979,7 @@ class Router {
 		// that's used by the Illuminate foundation framework for responses.
 		try
 		{
-			$path = $this->formatRequestPath($request);
+			$path = $request->getPathInfo();
 
 			$parameters = $this->getUrlMatcher($request)->match($path);
 		}
@@ -1000,24 +1000,6 @@ class Router {
 		$route->setParameters($parameters);
 
 		return $route;
-	}
-
-	/**
-	 * Format the request path info for routing.
-	 *
-	 * @param  Illuminate\Http\Request  $request
-	 * @return string
-	 */
-	protected function formatRequestPath($request)
-	{
-		$path = $request->getPathInfo();
-
-		if (strlen($path) > 1 and ends_with($path, '/'))
-		{
-			return '/'.ltrim(substr($path, 0, -1), '/');
-		}
-
-		return '/'.ltrim($path, '/');
 	}
 
 	/**
@@ -1164,7 +1146,7 @@ class Router {
 	/**
 	 * Find the patterned filters matching a request.
 	 *
-	 * @param  Illuminate\Foundation\Request  $request
+	 * @param  \Illuminate\Http\Request  $request
 	 * @return array
 	 */
 	public function findPatternFilters(Request $request)
@@ -1303,7 +1285,7 @@ class Router {
 	 *
 	 * @param  string  $key
 	 * @param  mixed   $value
-	 * @param  Illuminate\Routing\Route  $route
+	 * @param  \Illuminate\Routing\Route  $route
 	 * @return mixed
 	 */
 	public function performBinding($key, $value, $route)
@@ -1315,7 +1297,7 @@ class Router {
 	 * Prepare the given value as a Response object.
 	 *
 	 * @param  mixed  $value
-	 * @param  Illuminate\Foundation\Request  $request
+	 * @param  \Illuminate\Http\Request  $request
 	 * @return Symfony\Component\HttpFoundation\Response
 	 */
 	public function prepare($value, Request $request)
@@ -1350,6 +1332,19 @@ class Router {
 	}
 
 	/**
+	 * Get the current route name.
+	 *
+	 * @return string|null
+	 */
+	public function currentRouteName()
+	{
+		foreach ($this->routes->all() as $name => $route)
+		{
+			if ($route === $this->currentRoute) return $name;
+		}
+	}
+
+	/**
 	 * Determine if the current route has a given name.
 	 *
 	 * @param  string  $name
@@ -1363,6 +1358,16 @@ class Router {
 	}
 
 	/**
+	 * Get the current route action.
+	 *
+	 * @return string|null
+	 */
+	public function currentRouteAction()
+	{
+		return $this->currentRoute->getOption('_uses');
+	}
+
+	/**
 	 * Determine if the current route uses a given controller action.
 	 *
 	 * @param  string  $action
@@ -1370,7 +1375,7 @@ class Router {
 	 */
 	public function currentRouteUses($action)
 	{
-		return $this->currentRoute->getOption('_uses') === $action;
+		return $this->currentRouteAction() === $action;
 	}
 
 	/**
@@ -1426,7 +1431,7 @@ class Router {
 	/**
 	 * Get the current route being executed.
 	 *
-	 * @return Illuminate\Routing\Route
+	 * @return \Illuminate\Routing\Route
 	 */
 	public function getCurrentRoute()
 	{
@@ -1436,7 +1441,7 @@ class Router {
 	/**
 	 * Set the current route on the router.
 	 *
-	 * @param  Illuminate\Routing\Route  $route
+	 * @param  \Illuminate\Routing\Route  $route
 	 * @return void
 	 */
 	public function setCurrentRoute(Route $route)
@@ -1482,7 +1487,7 @@ class Router {
 	/**
 	 * Get the controller inspector instance.
 	 *
-	 * @return Illuminate\Routing\Controllers\Inspector
+	 * @return \Illuminate\Routing\Controllers\Inspector
 	 */
 	public function getInspector()
 	{
@@ -1492,7 +1497,7 @@ class Router {
 	/**
 	 * Set the controller inspector instance.
 	 *
-	 * @param  Illuminate\Routing\Controllers\Inspector  $inspector
+	 * @param  \Illuminate\Routing\Controllers\Inspector  $inspector
 	 * @return void
 	 */
 	public function setInspector(Inspector $inspector)
@@ -1503,7 +1508,7 @@ class Router {
 	/**
 	 * Get the container used by the router.
 	 *
-	 * @return Illuminate\Container\Container
+	 * @return \Illuminate\Container\Container
 	 */
 	public function getContainer()
 	{
@@ -1513,7 +1518,7 @@ class Router {
 	/**
 	 * Set the container instance on the router.
 	 *
-	 * @param  Illuminate\Container\Container  $container
+	 * @param  \Illuminate\Container\Container  $container
 	 * @return void
 	 */
 	public function setContainer(Container $container)

@@ -45,8 +45,8 @@ class Blueprint {
 	/**
 	 * Execute the blueprint against the database.
 	 *
-	 * @param  Illuminate\Database\Connection  $connection
-	 * @param  Illuminate\Database\Schema\Grammars\Grammar $grammar
+	 * @param  \Illuminate\Database\Connection  $connection
+	 * @param  \Illuminate\Database\Schema\Grammars\Grammar $grammar
 	 * @return void
 	 */
 	public function build(Connection $connection, Grammar $grammar)
@@ -60,8 +60,8 @@ class Blueprint {
 	/**
 	 * Get the raw SQL statements for the blueprint.
 	 *
-	 * @param  Illuminate\Database\Connection  $connection
-	 * @param  Illuminate\Database\Schema\Grammars\Grammar  $grammar
+	 * @param  \Illuminate\Database\Connection  $connection
+	 * @param  \Illuminate\Database\Schema\Grammars\Grammar  $grammar
 	 * @return array
 	 */
 	public function toSql(Connection $connection, Grammar $grammar)
@@ -156,7 +156,7 @@ class Blueprint {
 	/**
 	 * Indicate that the table needs to be created.
 	 *
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function create()
 	{
@@ -166,7 +166,7 @@ class Blueprint {
 	/**
 	 * Indicate that the table should be dropped.
 	 *
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function drop()
 	{
@@ -176,7 +176,7 @@ class Blueprint {
 	/**
 	 * Indicate that the table should be dropped if it exists.
 	 *
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropIfExists()
 	{
@@ -187,7 +187,7 @@ class Blueprint {
 	 * Indicate that the given columns should be dropped.
 	 *
 	 * @param  string|array  $columns
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropColumn($columns)
 	{
@@ -200,7 +200,7 @@ class Blueprint {
 	 * Indicate that the given columns should be dropped.
 	 *
 	 * @param  dynamic
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropColumns()
 	{
@@ -211,7 +211,7 @@ class Blueprint {
 	 * Indicate that the given primary key should be dropped.
 	 *
 	 * @param  string|array  $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropPrimary($index = null)
 	{
@@ -222,7 +222,7 @@ class Blueprint {
 	 * Indicate that the given unique key should be dropped.
 	 *
 	 * @param  string|array  $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropUnique($index)
 	{
@@ -233,7 +233,7 @@ class Blueprint {
 	 * Indicate that the given index should be dropped.
 	 *
 	 * @param  string|array  $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropIndex($index)
 	{
@@ -244,7 +244,7 @@ class Blueprint {
 	 * Indicate that the given foreign key should be dropped.
 	 *
 	 * @param  string  $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dropForeign($index)
 	{
@@ -252,10 +252,20 @@ class Blueprint {
 	}
 
 	/**
+	 * Indicate that the timestamp columns should be dropped.
+	 *
+	 * @return void
+	 */
+	public function dropTimestamps()
+	{
+		$this->dropColumns('created_at', 'updated_at');
+	}
+
+	/**
 	 * Rename the table to a given name.
 	 *
 	 * @param  string  $to
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function rename($to)
 	{
@@ -267,7 +277,7 @@ class Blueprint {
 	 *
 	 * @param  string|array  $columns
 	 * @param  string  $name
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function primary($columns, $name = null)
 	{
@@ -279,7 +289,7 @@ class Blueprint {
 	 *
 	 * @param  string|array  $columns
 	 * @param  string  $name
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function unique($columns, $name = null)
 	{
@@ -291,7 +301,7 @@ class Blueprint {
 	 *
 	 * @param  string|array  $columns
 	 * @param  string  $name
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function index($columns, $name = null)
 	{
@@ -303,7 +313,7 @@ class Blueprint {
 	 *
 	 * @param  string|array  $columns
 	 * @param  string  $name
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function foreign($columns, $name = null)
 	{
@@ -314,7 +324,7 @@ class Blueprint {
 	 * Create a new auto-incrementing column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function increments($column)
 	{
@@ -326,7 +336,7 @@ class Blueprint {
 	 *
 	 * @param  string  $column
 	 * @param  int  $length
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function string($column, $length = 255)
 	{
@@ -337,7 +347,7 @@ class Blueprint {
 	 * Create a new text column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function text($column)
 	{
@@ -350,7 +360,7 @@ class Blueprint {
 	 * @param  string  $column
 	 * @param  bool  $autoIncrement
 	 * @param  bool  $unsigned
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function integer($column, $autoIncrement = false, $unsigned = false)
 	{
@@ -361,7 +371,7 @@ class Blueprint {
 	 * Create a new tiny integer column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function tinyInteger($column)
 	{
@@ -374,7 +384,7 @@ class Blueprint {
 	 * @param  string  $column
 	 * @param  bool  $autoIncrement
 	 * @param  bool  $unsigned
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function unsignedInteger($column, $autoIncrement = false)
 	{
@@ -387,7 +397,7 @@ class Blueprint {
 	 * @param  string  $column
 	 * @param  int     $total
 	 * @param  int     $places
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function float($column, $total = 8, $places = 2)
 	{
@@ -400,7 +410,7 @@ class Blueprint {
 	 * @param  string  $column
 	 * @param  int     $total
 	 * @param  int     $places
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function decimal($column, $total = 8, $places = 2)
 	{
@@ -411,7 +421,7 @@ class Blueprint {
 	 * Create a new boolean column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function boolean($column)
 	{
@@ -423,7 +433,7 @@ class Blueprint {
 	 *
 	 * @param  string  $column
 	 * @param  array   $allowed
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function enum($column, array $allowed)
 	{
@@ -434,7 +444,7 @@ class Blueprint {
 	 * Create a new date column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function date($column)
 	{
@@ -445,7 +455,7 @@ class Blueprint {
 	 * Create a new date-time column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function dateTime($column)
 	{
@@ -456,7 +466,7 @@ class Blueprint {
 	 * Create a new time column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function time($column)
 	{
@@ -467,7 +477,7 @@ class Blueprint {
 	 * Create a new timestamp column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function timestamp($column)
 	{
@@ -490,7 +500,7 @@ class Blueprint {
 	 * Create a new binary column on the table.
 	 *
 	 * @param  string  $column
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	public function binary($column)
 	{
@@ -502,7 +512,7 @@ class Blueprint {
 	 *
 	 * @param  string        $type
 	 * @param  string|array  $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	protected function dropIndexCommand($type, $index)
 	{
@@ -527,7 +537,7 @@ class Blueprint {
 	 * @param  string        $type
 	 * @param  string|array  $columns
 	 * @param  string        $index
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	protected function indexCommand($type, $columns, $index)
 	{
@@ -564,7 +574,7 @@ class Blueprint {
 	 * @param  string  $type
 	 * @param  string  $name
 	 * @param  array   $parameters
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	protected function addColumn($type, $name, array $parameters = array())
 	{
@@ -580,7 +590,7 @@ class Blueprint {
 	 *
 	 * @param  string  $name
 	 * @param  array  $parameters
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	protected function addCommand($name, array $parameters = array())
 	{
@@ -594,7 +604,7 @@ class Blueprint {
 	 *
 	 * @param  string  $name
 	 * @param  array   $parameters
-	 * @return Illuminate\Support\Fluent
+	 * @return \Illuminate\Support\Fluent
 	 */
 	protected function createCommand($name, array $parameters = array())
 	{

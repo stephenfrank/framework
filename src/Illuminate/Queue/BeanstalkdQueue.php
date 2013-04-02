@@ -1,7 +1,7 @@
 <?php namespace Illuminate\Queue;
 
-use Pheanstalk;
 use Pheanstalk_Job;
+use Pheanstalk_Pheanstalk as Pheanstalk;
 use Illuminate\Queue\Jobs\BeanstalkdJob;
 
 class BeanstalkdQueue extends Queue implements QueueInterface {
@@ -70,7 +70,7 @@ class BeanstalkdQueue extends Queue implements QueueInterface {
 	 * Pop the next job off of the queue.
 	 *
 	 * @param  string  $queue
-	 * @return Illuminate\Queue\Jobs\Job|null
+	 * @return \Illuminate\Queue\Jobs\Job|null
 	 */
 	public function pop($queue = null)
 	{

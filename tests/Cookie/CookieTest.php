@@ -16,6 +16,7 @@ class CookieTest extends PHPUnit_Framework_TestCase {
 	public function testCookiesAreCreatedWithProperOptions()
 	{
 		$cookie = $this->getCreator();
+		$cookie->setDefaultPathAndDomain('foo', 'bar');
 		$c = $cookie->make('color', 'blue', 10, '/path', '/domain', true, false);
 		$value = $cookie->getEncrypter()->decrypt($c->getValue());
 		$this->assertEquals('blue', $value);
@@ -31,6 +32,20 @@ class CookieTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($c2->isSecure());
 		$this->assertEquals('/domain', $c2->getDomain());
 		$this->assertEquals('/path', $c2->getPath());
+	}
+
+
+	public function testCookiesAreCreatedWithProperOptionsUsingDefaultPathAndDomain()
+	{
+		$cookie = $this->getCreator();
+		$cookie->setDefaultPathAndDomain('/path', '/domain');
+		$c = $cookie->make('color', 'blue', 10, null, null, true, false);
+		$value = $cookie->getEncrypter()->decrypt($c->getValue());
+		$this->assertEquals('blue', $value);
+		$this->assertFalse($c->isHttpOnly());
+		$this->assertTrue($c->isSecure());
+		$this->assertEquals('/domain', $c->getDomain());
+		$this->assertEquals('/path', $c->getPath());
 	}
 
 

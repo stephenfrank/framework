@@ -81,11 +81,12 @@ class Application extends Container implements HttpKernelInterface {
 	/**
 	 * Create a new Illuminate application instance.
 	 *
+	 * @param  \Illuminate\Http\Request  $request
 	 * @return void
 	 */
-	public function __construct()
+	public function __construct(Request $request = null)
 	{
-		$this['request'] = Request::createFromGlobals();
+		$this['request'] = $this->createRequest($request);
 
 		// The exception handler class takes care of determining which of the bound
 		// exception handler Closures should be called for a given exception and
@@ -98,6 +99,17 @@ class Application extends Container implements HttpKernelInterface {
 	}
 
 	/**
+	 * Create the request for the application.
+	 *
+	 * @param  \Illuminate\Http\Request  $request
+	 * @return \Illuminate\Htto\Request
+	 */
+	protected function createRequest(Request $request = null)
+	{
+		return $request ?: Request::createFromGlobals();
+	}
+
+	/**
 	 * Bind the installation paths to the application.
 	 *
 	 * @param  array  $paths
@@ -107,9 +119,10 @@ class Application extends Container implements HttpKernelInterface {
 	{
 		$this->instance('path', $paths['app']);
 
-		$this->instance('path.base', $paths['base']);
-
-		$this->instance('path.public', $paths['public']);
+		foreach (array_except($paths, array('app')) as $key => $value)
+		{
+			$this->instance("path.{$key}", $value);
+		}
 	}
 
 	/**
@@ -274,7 +287,7 @@ class Application extends Container implements HttpKernelInterface {
 	/**
 	 * Register a service provider with the application.
 	 *
-	 * @param  Illuminate\Support\ServiceProvider|string  $provider
+	 * @param  \Illuminate\Support\ServiceProvider|string  $provider
 	 * @param  array  $options
 	 * @return void
 	 */
@@ -307,7 +320,7 @@ class Application extends Container implements HttpKernelInterface {
 	 * Resolve a service provider instance from the class name.
 	 *
 	 * @param  string  $provider
-	 * @return Illuminate\Support\ServiceProvider
+	 * @return \Illuminate\Support\ServiceProvider
 	 */
 	protected function resolveProviderClass($provider)
 	{
@@ -455,7 +468,7 @@ class Application extends Container implements HttpKernelInterface {
 	/**
 	 * Handle the given request and get the response.
 	 *
-	 * @param  Illuminate\Foundation\Request  $request
+	 * @param  \Illuminate\Http\Request  $request
 	 * @return Symfony\Component\HttpFoundation\Response
 	 */
 	public function dispatch(Request $request)
@@ -470,7 +483,7 @@ class Application extends Container implements HttpKernelInterface {
 	 *
 	 * @implements HttpKernelInterface::handle
 	 *
-	 * @param  Illuminate\Foundation\Request  $request
+	 * @param  \Illuminate\Http\Request  $request
 	 * @param  int   $type
 	 * @param  bool  $catch
 	 * @return Symfony\Component\HttpFoundation\Response
@@ -547,8 +560,8 @@ class Application extends Container implements HttpKernelInterface {
 	/**
 	 * Prepare the request by injecting any services.
 	 *
-	 * @param  Illuminate\Foundation\Request  $request
-	 * @return Illuminate\Foundation\Request
+	 * @param  \Illuminate\Http\Request  $request
+	 * @return \Illuminate\Http\Request
 	 */
 	public function prepareRequest(Request $request)
 	{
@@ -564,7 +577,7 @@ class Application extends Container implements HttpKernelInterface {
 	 * Prepare the given value as a Response object.
 	 *
 	 * @param  mixed  $value
-	 * @param  Illuminate\Foundation\Request  $request
+	 * @param  \Illuminate\Http\Request  $request
 	 * @return Symfony\Component\HttpFoundation\Response
 	 */
 	public function prepareResponse($value, Request $request)

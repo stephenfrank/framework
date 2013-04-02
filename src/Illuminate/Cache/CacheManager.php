@@ -7,39 +7,39 @@ class CacheManager extends Manager {
 	/**
 	 * Create an instance of the APC cache driver.
 	 *
-	 * @return Illuminate\Cache\ApcStore
+	 * @return \Illuminate\Cache\ApcStore
 	 */
 	protected function createApcDriver()
 	{
-		return new ApcStore(new ApcWrapper);
+		return $this->repository(new ApcStore(new ApcWrapper));
 	}
 
 	/**
 	 * Create an instance of the array cache driver.
 	 *
-	 * @return Illuminate\Cache\ArrayStore
+	 * @return \Illuminate\Cache\ArrayStore
 	 */
 	protected function createArrayDriver()
 	{
-		return new ArrayStore;
+		return $this->repository(new ArrayStore);
 	}
 
 	/**
 	 * Create an instance of the file cache driver.
 	 *
-	 * @return Illuminate\Cache\FileStore
+	 * @return \Illuminate\Cache\FileStore
 	 */
 	protected function createFileDriver()
 	{
 		$path = $this->app['config']['cache.path'];
 
-		return new FileStore($this->app['files'], $path);
+		return $this->repository(new FileStore($this->app['files'], $path));
 	}
 
 	/**
 	 * Create an instance of the Memcached cache driver.
 	 *
-	 * @return Illuminate\Cache\MemcachedStore
+	 * @return \Illuminate\Cache\MemcachedStore
 	 */
 	protected function createMemcachedDriver()
 	{
@@ -47,35 +47,35 @@ class CacheManager extends Manager {
 
 		$memcached = $this->app['memcached.connector']->connect($servers);
 
-		return new MemcachedStore($memcached, $this->app['config']['cache.prefix']);
+		return $this->repository(new MemcachedStore($memcached, $this->app['config']['cache.prefix']));
 	}
 
 	/**
 	 * Create an instance of the WinCache cache driver.
 	 *
-	 * @return Illuminate\Cache\WinCacheStore
+	 * @return \Illuminate\Cache\WinCacheStore
 	 */
 	protected function createWincacheDriver()
 	{
-		return new WinCacheStore($this->app['config']['cache.prefix']);
+		return $this->repository(new WinCacheStore($this->app['config']['cache.prefix']));
 	}
 
 	/**
 	 * Create an instance of the Redis cache driver.
 	 *
-	 * @return Illuminate\Cache\RedisStore
+	 * @return \Illuminate\Cache\RedisStore
 	 */
 	protected function createRedisDriver()
 	{
 		$redis = $this->app['redis']->connection();
 
-		return new RedisStore($redis, $this->app['config']['cache.prefix']);
+		return $this->repository(new RedisStore($redis, $this->app['config']['cache.prefix']));
 	}
 
 	/**
 	 * Create an instance of the database cache driver.
 	 *
-	 * @return Illuminate\Cache\DatabaseStore
+	 * @return \Illuminate\Cache\DatabaseStore
 	 */
 	protected function createDatabaseDriver()
 	{
@@ -90,19 +90,30 @@ class CacheManager extends Manager {
 
 		$prefix = $this->app['config']['cache.prefix'];
 
-		return new DatabaseStore($connection, $encrypter, $table, $prefix);
+		return $this->repository(new DatabaseStore($connection, $encrypter, $table, $prefix));
 	}
 
 	/**
 	 * Get the database connection for the database driver.
 	 *
-	 * @return Illuminate\Database\Connection
+	 * @return \Illuminate\Database\Connection
 	 */
 	protected function getDatabaseConnection()
 	{
 		$connection = $this->app['config']['cache.connection'];
 
 		return $this->app['db']->connection($connection);
+	}
+
+	/**
+	 * Create a new cache repository with the given implementation.
+	 *
+	 * @param  \Illuminate\Cache\StoreInterface  $store
+	 * @return \Illuminate\Cache\Repository
+	 */
+	protected function repository(StoreInterface $store)
+	{
+		return new Repository($store);
 	}
 
 	/**
