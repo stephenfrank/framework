@@ -169,9 +169,7 @@ abstract class HasOneOrMany extends Relation {
 	{
 		$model->setAttribute($this->getPlainForeignKey(), $this->parent->getKey());
 
-		$model->save();
-
-		return $model;
+		return $model->save() ? $model : false;
 	}
 
 	/**

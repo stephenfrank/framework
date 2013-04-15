@@ -229,6 +229,16 @@ class Paginator implements ArrayAccess, Countable, IteratorAggregate {
 	}
 
 	/**
+	 * Get the pagination environment.
+	 *
+	 * @var \Illuminate\Pagination\Environment
+	 */
+	public function getEnvironment()
+	{
+		return $this->env;
+	}
+
+	/**
 	 * Get an iterator for the items.
 	 *
 	 * @return ArrayIterator

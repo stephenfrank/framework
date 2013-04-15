@@ -29,6 +29,13 @@ class Blueprint {
 	protected $commands = array();
 
 	/**
+	 * The storage engine that should be used for the table.
+	 *
+	 * @var string
+	 */
+	protected $engine;
+
+	/**
 	 * Create a new schema blueprint.
 	 *
 	 * @param  string   $table
@@ -205,6 +212,18 @@ class Blueprint {
 	public function dropColumns()
 	{
 		return $this->dropColumn(func_get_args());
+	}
+
+	/**
+	 * Indicate that the given columns should be renamed.
+	 *
+	 * @param  string  $from
+	 * @param  string  $to
+	 * @return \Illuminate\Support\Fluent
+	 */
+	public function renameColumn($from, $to)
+	{
+		return $this->addCommand('renameColumn', compact('from', 'to'));
 	}
 
 	/**

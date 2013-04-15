@@ -13,7 +13,7 @@
 
 if ( ! extension_loaded('mcrypt'))
 {
-	die('Laravel requires the Mcrypt PHP extension.');
+	die('Laravel requires the Mcrypt PHP extension.'.PHP_EOL);
 
 	exit(1);
 }
@@ -139,6 +139,22 @@ $app->startExceptionHandling();
 $config = new Config($app['config.loader'], $env);
 
 $app->instance('config', $config);
+
+/*
+|--------------------------------------------------------------------------
+| Set The Console Request If Necessary
+|--------------------------------------------------------------------------
+|
+| If we're running in a console context, we won't have a host on this
+| request so we'll need to re-bind a new request with a URL from a
+| configuration file. This will help the URL generator generate.
+|
+*/
+
+if ($app->runningInConsole())
+{
+	$app->setRequestForConsoleEnvironment();
+}
 
 /*
 |--------------------------------------------------------------------------

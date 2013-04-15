@@ -127,7 +127,11 @@ class TestCase extends \PHPUnit_Framework_TestCase {
 	 */
 	public function assertResponseOk()
 	{
-		return $this->assertTrue($this->client->getResponse()->isOk());
+		$response = $this->client->getResponse();
+
+		$actual = $response->getStatusCode();
+
+		return $this->assertTrue($response->isOk(), 'Expected status code 200, got ' .$actual);
 	}
 
 	/**
@@ -260,12 +264,30 @@ class TestCase extends \PHPUnit_Framework_TestCase {
 
 	/**
 	 * Assert that the session has errors bound.
-	 *
+	 * 
+	 * @param  string|array  $bindings
+	 * @param  mixed  $format
 	 * @return void
 	 */
-	public function assertSessionHasErrors()
+	public function assertSessionHasErrors($bindings = array(), $format = null)
 	{
-		return $this->assertSessionHas('errors');
+		$this->assertSessionHas('errors');
+
+		$bindings = (array)$bindings;
+
+		$errors = $this->app['session']->get('errors');
+
+		foreach ($bindings as $key => $value)
+		{
+			if (is_int($key))
+			{
+				$this->assertTrue($errors->has($value));
+			}
+			else
+			{
+				$this->assertContains($value, $errors->get($key, $format));
+			}
+		}
 	}
 
 	/**

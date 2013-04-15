@@ -6,6 +6,18 @@
 - Touch owning models on delete.
 - Added `Str::macro` method.
 - Calling `update` on a Model instance will fill and update that model.
+- Allow specification of methods when pushing to Queue (`Queue::push('Class@method')`).
+- Removed HTML from default formatting in MessageBag.
+- Made Eloquent `deleting` event halting.
+- Added `Auth::basic` for quickly implementing HTTP Basic authentication.
+- Use [Predis](https://github.com/nrk/predis) as our Redis back-end. Supports pipelining, client side sharding / clustering.
+- Implement sectionable caching across all drivers which support incrmeent / decrement.
+- Added `Redirect::home` method from Laravel 3.
+- Added `Crypt::setKey`, `Crypt::setCipher`, and `Crypt::setMode`.
+- Allow "lazy" eager loading from an individual model: `$user->load('orders.lines');`.
+- Added `renameColumn` support to schema builder.
+- Added `dropColumn` support to SQLite schema builder.
+- Added `url` option to configuration for use by the Artisan CLI.
 
 ## Beta 4
 

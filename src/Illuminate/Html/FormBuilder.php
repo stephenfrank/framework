@@ -63,6 +63,13 @@ class FormBuilder {
 	protected $reserved = array('method', 'url', 'route', 'action', 'files');
 
 	/**
+	 * The form methods that should be spoofed, in uppercase.
+	 * 
+	 * @var array
+	 */
+	protected $spoofedMethods = array('DELETE', 'PATCH', 'PUT');
+
+	/**
 	 * Create a new form builder instance.
 	 *
 	 * @param  \Illuminate\Routing\UrlGenerator  $url
@@ -89,15 +96,15 @@ class FormBuilder {
 
 		// We need to extract the proper method from the attributes. If the method is
 		// something other than GET or POST we'll use POST since we will spoof the
-		// actual method since forms don't support PUT or DELETE as native HTML.
+		// actual method since forms don't support the reserved methods in HTML.
 		$attributes['method'] = $this->getMethod($method);
 
 		$attributes['action'] = $this->getAction($options);
 
 		$attributes['accept-charset'] = 'UTF-8';
 
-		// If the method is PUT or DELETE, we will need to add a spoofer hidden field
-		// that will instruct this Symfony request to pretend that the method is a
+		// If the method is PUT, PATCH or DELETE we will need to add a spoofer hidden
+		// field that will instruct the Symfony request to pretend the method is a
 		// different method than it actually is, for convenience from the forms.
 		$append = $this->getAppendage($method);
 
@@ -108,7 +115,7 @@ class FormBuilder {
 
 		// Finally we're ready to create the final form HTML field. We will attribute
 		// format the array of attributes. We will also add on the appendage which
-		// is used to spoof the requests for PUT and DELETE requests to the app.
+		// is used to spoof requests for the PUT, PATCH, etc. methods on forms.
 		$attributes = array_merge(
 
 			$attributes, array_except($options, $this->reserved)
@@ -543,7 +550,7 @@ class FormBuilder {
 			$options['type'] = 'button';
 		}
 		
-		return '<button'.$this->html->attributes($options).'>'.e($value).'</button>';
+		return '<button'.$this->html->attributes($options).'>'.$value.'</button>';
 	}
 
 	/**
@@ -659,7 +666,7 @@ class FormBuilder {
 	{
 		$method = strtoupper($method);
 
-		if ($method == 'PUT' or $method == 'DELETE')
+		if (in_array($method, $this->spoofedMethods))
 		{
 			return $this->hidden('_method', $method);
 		}
