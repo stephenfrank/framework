@@ -43,6 +43,13 @@ class Environment {
 	protected $shared = array();
 
 	/**
+	 * All of the registered view names.
+	 *
+	 * @var array
+	 */
+	protected $names = array();
+
+	/**
 	 * The extension to engine bindings.
 	 *
 	 * @var array
@@ -106,6 +113,30 @@ class Environment {
 		$path = $this->finder->find($view);
 
 		return new View($this, $this->getEngineFromPath($path), $view, $path, $data);
+	}
+
+	/**
+	 * Get a evaluated view contents for a named view.
+	 *
+	 * @param string $view
+	 * @param mixed $data
+	 * @return \Illuminate\View\View
+	 */
+	public function of($view, $data = array())
+	{
+		return $this->make($this->names[$view], $data);
+	}
+
+	/**
+	 * Register a named view.
+	 *
+	 * @param string $view
+	 * @param string $name
+	 * @return void
+	 */
+	public function name($view, $name)
+	{
+		$this->names[$name] = $view;
 	}
 
 	/**
@@ -572,6 +603,16 @@ class Environment {
 	public function getSections()
 	{
 		return $this->sections;
+	}
+
+	/**
+	 * Get all of the registered named views in environment.
+	 *
+	 * @return array
+	 */
+	public function getNames()
+	{
+		return $this->names;
 	}
 
 }

@@ -102,7 +102,7 @@ class Application extends Container implements HttpKernelInterface {
 	 * Create the request for the application.
 	 *
 	 * @param  \Illuminate\Http\Request  $request
-	 * @return \Illuminate\Htto\Request
+	 * @return \Illuminate\Http\Request
 	 */
 	protected function createRequest(Request $request = null)
 	{
@@ -471,6 +471,8 @@ class Application extends Container implements HttpKernelInterface {
 	public function run()
 	{
 		$response = $this->dispatch($this['request']);
+
+		$this['router']->callCloseFilter($this['request'], $response);
 
 		$response->send();
 

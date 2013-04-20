@@ -23,7 +23,7 @@ class Encrypter {
 	 *
 	 * @var string
 	 */
-	protected $mode = 'ctr';
+	protected $mode = 'cbc';
 
 	/**
 	 * The block size of the cipher.
@@ -251,7 +251,7 @@ class Encrypter {
 	 * @param  string  $mode
 	 * @return void
 	 */
-	public function setMode($model)
+	public function setMode($mode)
 	{
 		$this->mode = $mode;
 	}

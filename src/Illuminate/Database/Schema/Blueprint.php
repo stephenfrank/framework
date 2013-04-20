@@ -33,7 +33,7 @@ class Blueprint {
 	 *
 	 * @var string
 	 */
-	protected $engine;
+	public $engine;
 
 	/**
 	 * Create a new schema blueprint.
@@ -198,20 +198,9 @@ class Blueprint {
 	 */
 	public function dropColumn($columns)
 	{
-		$columns = (array) $columns;
+		$columns = is_array($columns) ? $columns : (array) func_get_args();
 
 		return $this->addCommand('dropColumn', compact('columns'));
-	}
-
-	/**
-	 * Indicate that the given columns should be dropped.
-	 *
-	 * @param  dynamic
-	 * @return \Illuminate\Support\Fluent
-	 */
-	public function dropColumns()
-	{
-		return $this->dropColumn(func_get_args());
 	}
 
 	/**
@@ -277,7 +266,7 @@ class Blueprint {
 	 */
 	public function dropTimestamps()
 	{
-		$this->dropColumns('created_at', 'updated_at');
+		$this->dropColumn('created_at', 'updated_at');
 	}
 
 	/**

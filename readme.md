@@ -18,6 +18,25 @@
 - Added `renameColumn` support to schema builder.
 - Added `dropColumn` support to SQLite schema builder.
 - Added `url` option to configuration for use by the Artisan CLI.
+- `dropColumn` now supports dynamic argument lists.
+- Pass `route` and `request` to Closure based controller before filters.
+- Added `Auth::basicStateless` method for easier API integration with basic auth.
+- Renamed `Auth::stateless` and `Auth::basicStateless` to `Auth::once` and `Auth::onceBasic`.
+- Added named view implementation which was in Laravel 3.
+- Migrated entire session back-end to Symfony HttpFoundation Session. New `native` driver. All drivers are available and work the same. New sessions will not be backwards compatible after updating.
+- Renamed `Session::getToken` to `Session::token`.
+- Added a few more helper methods to the `Collection` class.
+- Removed `dropColumns` function.
+- Added chainable `header` method to Http Response.
+- Implementing baked-in support for Iron.io "push queues" via `Queue::marshal`. No daemon processes needed!
+- Added `queue:subscribe` command for registering a URL end-point with an Iron.io push queue.
+- Added support for pushing anonymous functions onto the Queue. Wait for me to screencast this! Proceed with caution - black magic involved.
+- Allow for an array of expressions to be passed to `where` on route, keyed by parameter.
+- Allow the passing of an array to the `appends` method of the Paginator.
+- Added `Html::mailto` and `Html::email` from Laravel 3.
+- Added `Mail::queue`, `Mail::later`, `Mail::queueOn`, and `Mail::laterOn`. Screencast forthcoming.
+- Added `URL::full` method as alias into `Request::fullUrl`.
+- Set default encryption mode to `cbc`. `Crypt::setMode` is available if you wish to use previous mode of `ctr`.
 
 ## Beta 4
 
