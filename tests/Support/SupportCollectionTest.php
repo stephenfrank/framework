@@ -47,9 +47,9 @@ class SupportCollectionTest extends PHPUnit_Framework_TestCase {
 
 	public function testToArrayCallsToArrayOnEachItemInCollection()
 	{
-		$item1 = m::mock('stdClass');
+		$item1 = m::mock('Illuminate\Support\Contracts\ArrayableInterface');
 		$item1->shouldReceive('toArray')->once()->andReturn('foo.array');
-		$item2 = m::mock('stdClass');
+		$item2 = m::mock('Illuminate\Support\Contracts\ArrayableInterface');
 		$item2->shouldReceive('toArray')->once()->andReturn('bar.array');
 		$c = new Collection(array($item1, $item2));
 		$results = $c->toArray();
@@ -137,6 +137,31 @@ class SupportCollectionTest extends PHPUnit_Framework_TestCase {
 	{
 		$data = new Collection(array(array($object1 = new StdClass), array($object2 = new StdClass)));
 		$this->assertEquals(array($object1, $object2), $data->merge()->all());
+	}
+
+
+	public function testSort()
+	{
+		$data = new Collection(array(5, 3, 1, 2, 4));
+		$data->sort(function($a, $b)
+		{ 
+			if ($a === $b)
+			{
+		        return 0;
+		    }
+		    return ($a < $b) ? -1 : 1;
+		});
+
+		$this->assertEquals(range(1, 5), array_values($data->all()));
+	}
+
+
+	public function testSortBy()
+	{
+		$data = new Collection(array('taylor', 'dayle'));
+		$data->sortBy(function($x) { return $x; });
+
+		$this->assertEquals(array('dayle', 'taylor'), array_values($data->all()));
 	}
 
 }

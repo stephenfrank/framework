@@ -90,6 +90,13 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	protected $hidden = array();
 
 	/**
+	 * The attributes that should be visible in arrays.
+	 *
+	 * @var arrays
+	 */
+	protected $visible = array();
+
+	/**
 	 * The attributes that are mass assignable.
 	 *
 	 * @var array
@@ -130,6 +137,13 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 * @var bool
 	 */
 	public $exists = false;
+
+	/**
+	 * Indicates if the model should soft delete.
+	 *
+	 * @var bool
+	 */
+	protected $softDelete = false;
 
 	/**
 	 * Indicates whether attributes are snake cased on arrays.
@@ -186,6 +200,13 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 * @var string
 	 */
 	const UPDATED_AT = 'updated_at';
+
+	/**
+	 * The name of the "deleted at" column.
+	 *
+	 * @var string
+	 */
+	const DELETED_AT = 'deleted_at';
 
 	/**
 	 * Create a new Eloquent model instance.
@@ -649,12 +670,65 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 			// by the timestamp. Then we will go ahead and delete the model instance.
 			$this->touchOwners();
 
-			$this->newQuery()->where($this->getKeyName(), $this->getKey())->delete();
+			$this->performDeleteOnModel();
 
 			$this->fireModelEvent('deleted', false);
 		}
 	}
-	
+
+	/**
+	 * Force a hard delete on a soft deleted model.
+	 *
+	 * @return void
+	 */
+	public function forceDelete()
+	{
+		$softDelete = $this->softDelete;
+
+		// We will temporarily disable false delete to allow us to perform the real
+		// delete operation against the model. We will then restore the deleting
+		// state to what this was prior to this given hard deleting operation.
+		$this->softDelete = false;
+
+		$this->delete();
+
+		$this->softDelete = $softDelete;
+	}
+
+	/**
+	 * Perform the actual delete query on this model instance.
+	 *
+	 * @return void
+	 */
+	protected function performDeleteOnModel()
+	{
+		$query = $this->newQuery()->where($this->getKeyName(), $this->getKey());
+
+		if ($this->softDelete)
+		{
+			$query->update(array(static::DELETED_AT => new DateTime));
+		}
+		else
+		{
+			$query->delete();
+		}
+	}
+
+	/**
+	 * Restore a soft-deleted model instance.
+	 *
+	 * @return void
+	 */
+	public function restore()
+	{
+		if ($this->softDelete)
+		{
+			$this->{static::DELETED_AT} = null;
+
+			return $this->save();
+		}
+	}
+
 	/**
 	 * Register a saving model event with the dispatcher.
 	 *
@@ -761,6 +835,50 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	}
 
 	/**
+	 * Increment a column's value by a given amount.
+	 *
+	 * @param  string  $column
+	 * @param  int     $amount
+	 * @return int
+	 */
+	protected function increment($column, $amount = 1)
+	{
+		return $this->incrementOrDecrement($column, $amount, 'increment');
+	}
+
+	/**
+	 * Decrement a column's value by a given amount.
+	 *
+	 * @param  string  $column
+	 * @param  int     $amount
+	 * @return int
+	 */
+	protected function decrement($column, $amount = 1)
+	{
+		return $this->incrementOrDecrement($column, $amount, 'decrement');
+	}
+
+	/**
+	 * Run the increment or decrement method on the model.
+	 *
+	 * @param  string  $column
+	 * @param  int     $amount
+	 * @param  string  $method
+	 * @return void
+	 */
+	protected function incrementOrDecrement($column, $amount, $method)
+	{
+		$query = $this->newQuery();
+
+		if ( ! $this->exists)
+		{
+			return $query->{$method}($column, $amount);
+		}
+
+		return $query->where($this->getKeyName(), $this->getKey())->{$method}($column, $amount);
+	}
+
+	/**
 	 * Update the model in the database.
 	 *
 	 * @param  array  $attributes
@@ -784,7 +902,7 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public function save(array $options = array())
 	{
-		$query = $this->newQuery();
+		$query = $this->newQueryWithDeleted();
 
 		// If the "saving" event returns false we'll bail out of the save and return
 		// false, indicating that the save failed. This gives an opportunities to
@@ -1055,6 +1173,26 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	}
 
 	/**
+	 * Get the name of the "deleted at" column.
+	 *
+	 * @return string
+	 */
+	public function getDeletedAtColumn()
+	{
+		return static::DELETED_AT;
+	}
+
+	/**
+	 * Get the fully qualified "deleted at" column.
+	 *
+	 * @return string
+	 */
+	public function getQualifiedDeletedAtColumn()
+	{
+		return $this->getTable().'.'.$this->getDeletedAtColumn();
+	}
+
+	/**
 	 * Get a fresh timestamp for the model.
 	 *
 	 * @return mixed
@@ -1067,9 +1205,10 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	/**
 	 * Get a new query builder for the model's table.
 	 *
+	 * @param  bool  $excludeDeleted
 	 * @return \Illuminate\Database\Eloquent\Builder
 	 */
-	public function newQuery()
+	public function newQuery($excludeDeleted = true)
 	{
 		$builder = new Builder($this->newBaseQueryBuilder());
 
@@ -1078,7 +1217,46 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 		// while it is constructing and executing various queries against it.
 		$builder->setModel($this)->with($this->with);
 
+		if ($excludeDeleted and $this->softDelete)
+		{
+			$builder->whereNull($this->getQualifiedDeletedAtColumn());
+		}
+
 		return $builder;
+	}
+
+	/**
+	 * Get a new query builder that includes soft deletes.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public function newQueryWithDeleted()
+	{
+		return $this->newQuery(false);
+	}
+
+	/**
+	 * Get a new query builder that includes soft deletes.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public static function withTrashed()
+	{
+		return with(new static)->newQueryWithDeleted();
+	}
+
+	/**
+	 * Get a new query builder that only includes soft deletes.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Builder
+	 */
+	public static function trashed()
+	{
+		$instance = new static;
+
+		$column = $instance->getQualifiedDeletedAtColumn();
+
+		return $instance->newQueryWithDeleted()->whereNotNull($column);
 	}
 
 	/**
@@ -1170,6 +1348,27 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	}
 
 	/**
+	 * Determine if the model instance uses soft deletes.
+	 *
+	 * @return bool
+	 */
+	public function isSoftDeleting()
+	{
+		return $this->softDelete;
+	}
+
+	/**
+	 * Set the soft deleting property on the model.
+	 *
+	 * @param  bool  $enabled
+	 * @return void
+	 */
+	public function setSoftDeleting($enabled)
+	{
+		$this->softDelete = $enabled;
+	}
+
+	/**
 	 * Get the polymorphic relationship columns.
 	 *
 	 * @param  string  $name
@@ -1236,6 +1435,17 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	public function setHidden(array $hidden)
 	{
 		$this->hidden = $hidden;
+	}
+
+	/**
+	 * Set the visible attributes for the model.
+	 *
+	 * @param  array  $visible
+	 * @return void
+	 */
+	public function setVisible(array $visible)
+	{
+		$this->visible = $visible;
 	}
 
 	/**
@@ -1453,6 +1663,11 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	protected function getAccessibleAttributes()
 	{
+		if (count($this->visible) > 0)
+		{
+			return array_intersect_key($this->attributes, array_flip($this->visible));
+		}
+
 		return array_diff_key($this->attributes, array_flip($this->hidden));
 	}
 
@@ -1692,6 +1907,20 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	}
 
 	/**
+	 * Clone the model into a new, non-existing instance.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Model
+	 */
+	public function replicate()
+	{
+		$attributes = array_except($this->attributes, array($this->getKeyName()));
+
+		with($instance = new static)->setRawAttributes($attributes);
+
+		return $instance->setRelations($this->relations);
+	}
+
+	/**
 	 * Get all of the current attributes on the model.
 	 *
 	 * @return array
@@ -1780,6 +2009,19 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	public function setRelation($relation, $value)
 	{
 		$this->relations[$relation] = $value;
+	}
+
+	/**
+	 * Set the entire relations array on the model.
+	 *
+	 * @param  array  $relations
+	 * @return \Illuminate\Database\Eloquent\Model
+	 */
+	public function setRelations(array $relations)
+	{
+		$this->relations = $relations;
+
+		return $this;
 	}
 
 	/**
@@ -1994,6 +2236,11 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public function __call($method, $parameters)
 	{
+		if (in_array($method, array('increment', 'decrement')))
+		{
+			return call_user_func_array(array($this, $method), $parameters);
+		}
+
 		$query = $this->newQuery();
 
 		return call_user_func_array(array($query, $method), $parameters);

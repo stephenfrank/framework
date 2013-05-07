@@ -203,7 +203,7 @@ class Guard {
 		{
 			if ($this->attemptBasic($request, $field)) return;
 		}
-
+		
 		return $this->getBasicResponse();
 	}
 
@@ -251,7 +251,7 @@ class Guard {
 	/**
 	 * Get the response for basic authentication.
 	 *
-	 * @return Symfony\Component\HttpFoundation\Response
+	 * @return \Symfony\Component\HttpFoundation\Response
 	 */
 	protected function getBasicResponse()
 	{
@@ -270,6 +270,8 @@ class Guard {
 	 */
 	public function attempt(array $credentials = array(), $remember = false, $login = true)
 	{
+		$this->fireAttemptEvent($credentials, $remember, $login);
+
 		$user = $this->provider->retrieveByCredentials($credentials);
 
 		// If an implementation of UserInterface was returned, we'll ask the provider
@@ -286,6 +288,38 @@ class Guard {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Fire the attempt event with the arguments.
+	 *
+	 * @param  array  $credentials
+	 * @param  bool   $remember
+	 * @param  bool   $login
+	 * @return void
+	 */
+	protected function fireAttemptEvent(array $credentials, $remember, $login)
+	{
+		if ($this->events)
+		{
+			$payload = array_values(compact('credentials', 'remember', 'login'));
+
+			$this->events->fire('auth.attempt', $payload);
+		}
+	}
+
+	/**
+	 * Register an authentication attempt event listener.
+	 *
+	 * @param  mixed  $callback
+	 * @return void
+	 */
+	public function attempting($callback)
+	{
+		if ($this->events)
+		{
+			$this->events->listen('auth.attempt', $callback);
+		}
 	}
 
 	/**
@@ -338,7 +372,7 @@ class Guard {
 	 * Create a remember me cookie for a given ID.
 	 *
 	 * @param  mixed  $id
-	 * @return Symfony\Component\HttpFoundation\Cookie
+	 * @return \Symfony\Component\HttpFoundation\Cookie
 	 */
 	protected function createRecaller($id)
 	{
