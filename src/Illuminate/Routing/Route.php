@@ -96,14 +96,45 @@ class Route {
 	/**
 	 * Run the route action and return the response.
 	 *
+	 * @param \Illuminate\Http\Request $request
 	 * @return mixed
 	 */
-	public function run()
+	public function run(Request $request)
 	{
 		$parameters = array_filter($this->parameters(), function($p) { return isset($p); });
 
+		if ($this->closureIsRequestHinted($this->action['uses'], $request))
+		{
+			$request->query->add($parameters);
+
+			$parameters = array($request) + $parameters;
+		}
+
 		return call_user_func_array($this->action['uses'], $parameters);
 	}
+
+
+	/**
+	 * Determines if the closure is type-hinted for a Request
+	 *
+	 * @param callable $closure
+	 * @param \Illuminate\Http\Request $request
+	 * @return bool
+	 */
+	protected function closureIsRequestHinted($closure, Request $request)
+	{
+		$reflection = new \ReflectionFunction($closure);
+		$reflectedParameters = $reflection->getParameters();
+		$firstParameter = reset($reflectedParameters);
+
+		if ($firstParameter and $firstParameter->getClass())
+		{
+			return is_a($request, $firstParameter->getClass()->name);
+		}
+
+		return false;
+	}
+
 
 	/**
 	 * Determine if the route matches given request.

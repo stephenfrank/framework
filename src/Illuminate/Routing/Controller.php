@@ -1,6 +1,8 @@
 <?php namespace Illuminate\Routing;
 
 use Closure;
+use Illuminate\Http\Request;
+use ReflectionClass;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 abstract class Controller {
@@ -222,11 +224,19 @@ abstract class Controller {
 	 *
 	 * @param string  $method
 	 * @param array   $parameters
+	 * @param \Illuminate\Http\Request $request
 	 * @return \Symfony\Component\HttpFoundation\Response
 	 */
-	public function callAction($method, $parameters)
+	public function callAction($method, $parameters, Request $request)
 	{
 		$this->setupLayout();
+
+		if ($this->methodIsRequestHinted($method, $request))
+		{
+			$request->query->add($parameters);
+
+			$parameters = array($request) + $parameters;
+		}
 
 		$response = call_user_func_array(array($this, $method), $parameters);
 
@@ -239,6 +249,26 @@ abstract class Controller {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Determines if the method is type-hinted for a Request
+	 * @param $method
+	 * @param \Illuminate\Http\Request $request
+	 * @return bool
+	 */
+	protected function methodIsRequestHinted($method, Request $request)
+	{
+		$reflection = new ReflectionClass($this);
+		$reflectedParameters = $reflection->getMethod($method)->getParameters();
+		$firstParameter = reset($reflectedParameters);
+
+		if ($firstParameter and $firstParameter->getClass())
+		{
+			return is_a($request, $firstParameter->getClass()->name);
+		}
+
+		return false;
 	}
 
 	/**

@@ -33,6 +33,10 @@ class RoutingRouteTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('taylor', $router->dispatch(Request::create('foo/taylor', 'GET'))->getContent());
 
 		$router = $this->getRouter();
+		$router->get('foo/{name}', function(Request $request, $name) { return $request->input('name') . $name; });
+		$this->assertEquals('taylortaylor', $router->dispatch(Request::create('foo/taylor', 'GET'))->getContent());
+
+		$router = $this->getRouter();
 		$router->get('foo/{bar}/{baz?}', function($name, $age = 25) { return $name.$age; });
 		$this->assertEquals('taylor25', $router->dispatch(Request::create('foo/taylor', 'GET'))->getContent());
 
@@ -145,6 +149,9 @@ class RoutingRouteTest extends PHPUnit_Framework_TestCase {
 		$router->get('baz', 'RouteTestControllerDispatchStub@baz');
 		$this->assertEquals('filtered', $router->dispatch(Request::create('baz', 'GET'))->getContent());
 
+		$router = $this->getRouter();
+		$router->get('biz/{name}', 'RouteTestControllerDispatchStub@biz');
+		$this->assertEquals('foofoo', $router->dispatch(Request::create('biz/foo', 'GET'))->getContent());
 
 		unset($_SERVER['__test.after.filter']);
 		$router = $this->getRouter();
@@ -752,6 +759,10 @@ class RouteTestControllerDispatchStub extends Illuminate\Routing\Controller {
 	public function qux()
 	{
 		return 'qux';
+	}
+	public function biz(Request $request, $name)
+	{
+		return $request->input('name').$name;
 	}
 }
 

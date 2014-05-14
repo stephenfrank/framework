@@ -59,7 +59,7 @@ class ControllerDispatcher {
 		// out for processing by this router and the after filters can be called then.
 		if (is_null($response))
 		{
-			$response = $this->call($instance, $route, $method);
+			$response = $this->call($instance, $route, $method, $request);
 		}
 
 		return $response;
@@ -84,13 +84,14 @@ class ControllerDispatcher {
 	 * @param  \Illuminate\Routing\Controller  $instance
 	 * @param  \Illuminate\Routing\Route  $route
 	 * @param  string  $method
+	 * @param \Illuminate\Http\Request $request
 	 * @return mixed
 	 */
-	protected function call($instance, $route, $method)
+	protected function call($instance, $route, $method, Request $request)
 	{
 		$parameters = $route->parametersWithoutNulls();
 
-		return $instance->callAction($method, $parameters);
+		return $instance->callAction($method, $parameters, $request);
 	}
 
 	/**
